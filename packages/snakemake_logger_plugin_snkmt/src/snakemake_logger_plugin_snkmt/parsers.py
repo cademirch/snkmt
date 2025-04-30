@@ -109,10 +109,9 @@ class JobFinished(BaseModel):
 
     @classmethod
     def from_record(cls, record: LogRecord) -> "JobFinished":
-        return cls(job_id=getattr(record, "job_id", 0))
+        return cls(job_id=getattr(record, "job_id"))
 
 
-# New models for remaining event types
 class ShellCmd(BaseModel):
     jobid: int
     shellcmd: Optional[str]

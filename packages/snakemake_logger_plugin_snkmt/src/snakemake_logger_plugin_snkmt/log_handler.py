@@ -26,7 +26,7 @@ from snakemake_logger_plugin_snkmt.event_handlers import (
 )
 
 
-class SQLiteLogHandler(Handler):
+class snkmtLogHandler(Handler):
     """Log handler that stores Snakemake events in a SQLite database.
 
     This handler processes log records from Snakemake and uses
@@ -78,7 +78,7 @@ class SQLiteLogHandler(Handler):
             session.rollback()
             self.handleError(
                 logging.LogRecord(
-                    name="SQLiteLogHandler",
+                    name="snkmtLogHandler",
                     level=logging.ERROR,
                     pathname="",
                     lineno=0,
@@ -110,6 +110,7 @@ class SQLiteLogHandler(Handler):
 
             with self.session_scope() as session:
                 handler.handle(record, session, self.context)
+                session.commit()
 
         except Exception:
             self.handleError(record)
@@ -129,7 +130,7 @@ class SQLiteLogHandler(Handler):
             except Exception as e:
                 self.handleError(
                     logging.LogRecord(
-                        name="SQLiteLogHandler",
+                        name="snkmtLogHandler",
                         level=logging.ERROR,
                         pathname="",
                         lineno=0,

@@ -8,11 +8,7 @@ from sqlalchemy.orm import Session
 
 import snakemake_logger_plugin_snkmt.parsers as parsers
 from snakemake_logger_plugin_snkmt.models.enums import FileType, Status
-from snakemake_logger_plugin_snkmt.models.file import File
-from snakemake_logger_plugin_snkmt.models.job import Job
-from snakemake_logger_plugin_snkmt.models.rule import Rule
-from snakemake_logger_plugin_snkmt.models.error import Error
-from snakemake_logger_plugin_snkmt.models.workflow import Workflow
+from snakemake_logger_plugin_snkmt.models import File, Job, Rule, Error, Workflow
 
 """
 Context Dictionary Structure:
@@ -104,7 +100,6 @@ class WorkflowStartedHandler(EventHandler):
 
         session.add(workflow)
 
-        # Update context with current workflow ID
         context["current_workflow_id"] = workflow_data.workflow_id
 
 
@@ -145,9 +140,8 @@ class JobInfoHandler(EventHandler):
                 workflow_id=context["current_workflow_id"],
             )
             session.add(rule)
-            session.flush()  # Get the generated ID
+            session.flush()
 
-        # Create the job
         job = Job(
             snakemake_id=job_data.jobid,
             workflow_id=context["current_workflow_id"],
@@ -162,9 +156,8 @@ class JobInfoHandler(EventHandler):
             status=Status.RUNNING,
         )
         session.add(job)
-        session.flush()  # Get the job ID
+        session.flush()
 
-        # Add files if present
         self._add_files(job, job_data.input, FileType.INPUT, session)
         self._add_files(job, job_data.output, FileType.OUTPUT, session)
         self._add_files(job, job_data.log, FileType.LOG, session)

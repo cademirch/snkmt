@@ -1,10 +1,10 @@
 from snakemake_interface_logger_plugins.base import LogHandlerBase
-from snakemake_logger_plugin_snkmt.log_handler import SQLiteLogHandler
+from snakemake_logger_plugin_snkmt.log_handler import snkmtLogHandler
 
 
-class LogHandler(LogHandlerBase, SQLiteLogHandler):
+class LogHandler(LogHandlerBase, snkmtLogHandler):
     def __post_init__(self) -> None:
-        SQLiteLogHandler.__init__(self, self.common_settings)
+        snkmtLogHandler.__init__(self, self.common_settings)
 
     @property
     def writes_to_stream(self) -> bool:
