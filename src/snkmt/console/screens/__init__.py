@@ -1,0 +1,79 @@
+from textual import events
+from textual.message import Message
+from textual.widgets import DataTable, Footer, Header, Input, Static
+from textual.screen import Screen
+from textual.app import App, ComposeResult
+from textual.containers import Container
+from uuid import UUID
+from snkmt.console.widgets import Table
+from sqlalchemy.orm import Session
+from snakemake_logger_plugin_snkmt.models import Workflow
+
+
+class WorkflowDetailScreen(Screen):
+    """
+    For now this just shows rule statuses for a workflow. Selecting a rule will then show all jobs for a rule.
+    In the future this could show more info about the workflow at the top and then table of rules.
+    Maybe tabs for rules/jobs? Progress bar, etc
+    """
+
+    def __init__(self, db_session: Session, workflow_id: UUID, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.db_session = db_session
+        self.table = Table()
+        self.table.cursor_type = "row"
+
+
+class WorkflowSummaryScreen(Screen):
+    """
+    Shows table of workflows in database
+    """
+
+    BINDINGS = [
+        ("q", "quit", "Quit"),
+    ]
+
+    def __init__(self, db_session: Session, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.db_session = db_session
+        self.table = Table()
+        self.table.cursor_type = "row"
+        self.table.add_columns("UUID", "Status", "Snakefile", "Started At")
+
+    def compose(self) -> ComposeResult:
+        """Create child widgets for the main screen."""
+        self.table.focus()
+        yield Container(Header(show_clock=True), self.table, Footer())
+
+    def on_mount(self) -> None:
+        """Load data when the screen is mounted."""
+        self.load_workflow_data()
+
+    def load_workflow_data(self) -> None:
+        """Load workflow data from the database and populate the table."""
+        # Clear existing rows
+        self.table.clear()
+
+        # Get workflows from the database
+        workflows = Workflow.list_all(self.db_session, limit=100)
+
+        # Add rows to the table
+        for workflow in workflows:
+            uuid_str = str(workflow.id)
+            status = workflow.status.value if workflow.status else "UNKNOWN"
+            snakefile = workflow.snakefile or "N/A"
+            started_at = (
+                workflow.started_at.strftime("%Y-%m-%d %H:%M:%S")
+                if workflow.started_at
+                else "N/A"
+            )
+
+            self.table.add_row(uuid_str, status, snakefile, started_at)
+
+    def on_data_table_row_selected(self, event: Table.RowSelected) -> None:
+        """Handle row selection event."""
+        # Get the UUID from the first cell of the selected row
+        workflow_id = self.table.get_row(event.row_key)[0]
+
+        self.log(f"Selected workflow: {workflow_id}")
+        self.app.push_screen(WorkflowDetailScreen(self.db_session, workflow_id))

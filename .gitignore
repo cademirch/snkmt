@@ -5,7 +5,11 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
+demo/results
+demo/.snakemake
+pixi.lock
+uv.lock
+.pixi
 # C extensions
 *.so
 
