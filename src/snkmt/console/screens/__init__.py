@@ -7,7 +7,7 @@ from textual.containers import Container
 from uuid import UUID
 from snkmt.console.widgets import Table
 from sqlalchemy.orm import Session
-from snakemake_logger_plugin_snkmt.models import Workflow
+from snakemake_logger_plugin_sqlite.models import Workflow
 
 
 class WorkflowDetailScreen(Screen):
@@ -38,7 +38,7 @@ class WorkflowSummaryScreen(Screen):
         self.db_session = db_session
         self.table = Table()
         self.table.cursor_type = "row"
-        self.table.add_columns("UUID", "Status", "Snakefile", "Started At")
+        self.table.add_columns("UUID", "Status", "Snakefile", "Started At", "Progress")
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the main screen."""
@@ -67,10 +67,11 @@ class WorkflowSummaryScreen(Screen):
                 if workflow.started_at
                 else "N/A"
             )
+            progress = format(workflow.progress, ".2%")
 
-            self.table.add_row(uuid_str, status, snakefile, started_at)
+            self.table.add_row(uuid_str, status, snakefile, started_at, progress)
 
-    def on_data_table_row_selected(self, event: Table.RowSelected) -> None:
+    def on_data_table_cell_selected(self, event: Table.RowSelected) -> None:
         """Handle row selection event."""
         # Get the UUID from the first cell of the selected row
         workflow_id = self.table.get_row(event.row_key)[0]

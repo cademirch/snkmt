@@ -21,7 +21,6 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/readline-8.2-h1d1bf99_2.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/tk-8.6.13-h5083fa2_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/tzdata-2025b-h78e105d_0.conda
-      - pypi: https://files.pythonhosted.org/packages/78/b6/6307fbef88d9b5ee7421e68d78a9f162e0da4900bc5f5793f6d3d0e34fb8/annotated_types-0.7.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/b3/66/e6c0a808950ba5a4042e2fcedd577fc7401536c7db063de4d7c36be06f84/argparse_dataclass-2.0.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/7e/d4/7ebdbd03970677812aac39c869717059dbb71a4cfc033ca6e5221787892c/click-8.1.8-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/6f/b3/b4ac838711fd74a2b4e6f746703cf9dd2cf5462d17dac07e349234e21b97/ConfigArgParse-1.7-py3-none-any.whl
@@ -30,21 +29,18 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/a7/f7/7782a043553ee469c1ff49cfa1cdace2d6bf99a1f333cf38676b3ddf30da/mdit_py_plugins-0.4.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/b3/38/89ba8ad64ae25be8de66a6d463314cf1eb366222074cfda9ee839c56a4b4/mdurl-0.1.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/6d/45/59578566b3275b8fd9157885918fcd0c4d74162928a5310926887b856a51/platformdirs-4.3.7-py3-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/e7/12/46b65f3534d099349e38ef6ec98b1a5a81f42536d17e0ba382c28c67ba67/pydantic-2.11.4-py3-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/a1/02/6224312aacb3c8ecbaa959897af57181fb6cf3a3d7917fd44d0f2917e6f2/pydantic_core-2.33.2-cp312-cp312-macosx_11_0_arm64.whl
       - pypi: https://files.pythonhosted.org/packages/8a/0b/9fcc47d19c48b59121088dd6da2488a49d5f72dacf8262e2790a1d2c7d15/pygments-2.19.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/0d/9b/63f4c7ebc259242c89b3acafdb37b41d1185c07ff0011164674e9076b491/rich-14.0.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/e0/f9/0595336914c5619e5f28a1fb793285925a8cd4b432c9da0a987836c7f822/shellingham-1.5.4-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/3d/fe/c318657e6a4b8ab5b3eafa07cd1c360a732c6b37ba6085f3c82339ebbbdc/snakemake_interface_common-1.17.4-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/fa/36/3e631b82c4822569e7af783e05e0feb29d33b3bd886977b0d70183f9ed4a/snakemake_interface_logger_plugins-1.2.3-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/dc/37/c6a076cb912106372c82c3aa22ff288b929f60b8fe274290b89b6c22a771/snakemake_logger_plugin_sqlite-0.1.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/01/72/a5bc6e76c34cebc071f758161dbe1453de8815ae6e662393910d3be6d70d/sqlalchemy-2.0.40-cp312-cp312-macosx_11_0_arm64.whl
       - pypi: https://files.pythonhosted.org/packages/8d/a7/802690234cdbdf99020c7c55512b5cea8344b6578a40b19f2f863c659867/textual-3.1.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/48/20/9d953de6f4367163d23ec823200eb3ecb0050a2609691e512c8b95827a9b/typer-0.15.3-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/8b/54/b1ae86c0973cc6f0210b53d508ca3641fb6d0c56823f288d108bc7ab3cc8/typing_extensions-4.13.2-py3-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/31/08/aa4fdfb71f7de5176385bd9e90852eaf6b5d622735020ad600f2bab54385/typing_inspection-0.4.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/37/87/1f677586e8ac487e29672e4b17455758fce261de06a0d086167bb760361a/uc_micro_py-1.0.3-py3-none-any.whl
       - pypi: .
-      - pypi: ../snakemake_logger_plugin_snkmt
   dev:
     channels:
     - url: https://conda.anaconda.org/conda-forge/
@@ -182,7 +178,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/01/72/a5bc6e76c34cebc071f758161dbe1453de8815ae6e662393910d3be6d70d/sqlalchemy-2.0.40-cp312-cp312-macosx_11_0_arm64.whl
       - pypi: https://files.pythonhosted.org/packages/8d/a7/802690234cdbdf99020c7c55512b5cea8344b6578a40b19f2f863c659867/textual-3.1.1-py3-none-any.whl
       - pypi: .
-      - pypi: ../snakemake_logger_plugin_snkmt
+      - pypi: ../snakemake-logger-plugin-sqlite
 packages:
 - conda: https://conda.anaconda.org/conda-forge/noarch/amply-0.1.6-pyhd8ed1ab_1.conda
   sha256: e8d87cb66bcc62bc8d8168037b776de962ebf659e45acb1a813debde558f7339
@@ -196,13 +192,6 @@ packages:
   - pkg:pypi/amply?source=hash-mapping
   size: 21899
   timestamp: 1734603085333
-- pypi: https://files.pythonhosted.org/packages/78/b6/6307fbef88d9b5ee7421e68d78a9f162e0da4900bc5f5793f6d3d0e34fb8/annotated_types-0.7.0-py3-none-any.whl
-  name: annotated-types
-  version: 0.7.0
-  sha256: 1f02e8b43a8fbbc3f3e0d4f0f4bfc8131bcb4eebe8849b8e5c773f3a1c582a53
-  requires_dist:
-  - typing-extensions>=4.0.0 ; python_full_version < '3.9'
-  requires_python: '>=3.8'
 - conda: https://conda.anaconda.org/conda-forge/noarch/annotated-types-0.7.0-pyhd8ed1ab_1.conda
   sha256: e0ea1ba78fbb64f17062601edda82097fcf815012cf52bb704150a2668110d48
   md5: 2934f256a8acfe48f6ebb4fce6cde29c
@@ -1311,18 +1300,6 @@ packages:
   purls: []
   size: 110100
   timestamp: 1733195786147
-- pypi: https://files.pythonhosted.org/packages/e7/12/46b65f3534d099349e38ef6ec98b1a5a81f42536d17e0ba382c28c67ba67/pydantic-2.11.4-py3-none-any.whl
-  name: pydantic
-  version: 2.11.4
-  sha256: d9615eaa9ac5a063471da949c8fc16376a84afb5024688b3ff885693506764eb
-  requires_dist:
-  - annotated-types>=0.6.0
-  - pydantic-core==2.33.2
-  - typing-extensions>=4.12.2
-  - typing-inspection>=0.4.0
-  - email-validator>=2.0.0 ; extra == 'email'
-  - tzdata ; python_full_version >= '3.9' and sys_platform == 'win32' and extra == 'timezone'
-  requires_python: '>=3.9'
 - conda: https://conda.anaconda.org/conda-forge/noarch/pydantic-2.11.3-pyh3cfb1c2_0.conda
   sha256: 89183785b09ebe9f9e65710057d7c41e9d21d4a9ad05e068850e18669655d5a8
   md5: 3c6f7f8ae9b9c177ad91ccc187912756
@@ -1339,13 +1316,6 @@ packages:
   - pkg:pypi/pydantic?source=compressed-mapping
   size: 306616
   timestamp: 1744192311966
-- pypi: https://files.pythonhosted.org/packages/a1/02/6224312aacb3c8ecbaa959897af57181fb6cf3a3d7917fd44d0f2917e6f2/pydantic_core-2.33.2-cp312-cp312-macosx_11_0_arm64.whl
-  name: pydantic-core
-  version: 2.33.2
-  sha256: 3c6db6e52c6d70aa0d00d45cdb9b40f0433b96380071ea80b09277dba021ddf7
-  requires_dist:
-  - typing-extensions>=4.6.0,!=4.7.0
-  requires_python: '>=3.9'
 - conda: https://conda.anaconda.org/conda-forge/osx-arm64/pydantic-core-2.33.1-py312hd60eec9_0.conda
   sha256: e623385318ea652343a6ef25a67bb66432b604b613ee2c3b0a8997324a9c8de6
   md5: d2d61dd43aea2fcfbc08b18b01024689
@@ -1776,12 +1746,11 @@ packages:
   - pkg:pypi/snakemake-interface-storage-plugins?source=hash-mapping
   size: 19926
   timestamp: 1742480267140
-- pypi: ../snakemake_logger_plugin_snkmt
-  name: snakemake-logger-plugin-snkmt
-  version: 0.1.0
-  sha256: 07ac994dbe18734676471c948db96816ef2c5c61cb118ef3a84e2da8eeb70059
+- pypi: ../snakemake-logger-plugin-sqlite
+  name: snakemake-logger-plugin-sqlite
+  version: 0.1.1
+  sha256: 2d884de8f60bbe33bba17c6a95ac1fd404746ebf39965789a8613ccc012f5a55
   requires_dist:
-  - pydantic>=2.10.6
   - snakemake-interface-logger-plugins>=1.2.0
   - sqlalchemy>=2.0.38
   - pytest>=8.3.5 ; extra == 'dev'
@@ -1790,6 +1759,18 @@ packages:
   - loguru>=0.7.3 ; extra == 'dev'
   requires_python: '>=3.11,<4.0'
   editable: true
+- pypi: https://files.pythonhosted.org/packages/dc/37/c6a076cb912106372c82c3aa22ff288b929f60b8fe274290b89b6c22a771/snakemake_logger_plugin_sqlite-0.1.1-py3-none-any.whl
+  name: snakemake-logger-plugin-sqlite
+  version: 0.1.1
+  sha256: 6e445c7d592eb1e566cfc8fc74efbce7a7f28b5d7982741c825191ef129bf7e9
+  requires_dist:
+  - snakemake-interface-logger-plugins>=1.2.0
+  - sqlalchemy>=2.0.38
+  - loguru>=0.7.3 ; extra == 'dev'
+  - pytest>=8.3.5 ; extra == 'dev'
+  - ruff>=0.9.10 ; extra == 'dev'
+  - snakemake>=9.0.1 ; extra == 'dev'
+  requires_python: '>=3.11,<4.0'
 - conda: https://conda.anaconda.org/bioconda/noarch/snakemake-minimal-9.3.3-pyhdfd78af_0.tar.bz2
   sha256: 8b410ecbd91913db77e2973facc430881f4506fd51ccbc5b0a9f697d235fbd58
   md5: e4770efb42a77a5e903a132533eb9ba6
@@ -1832,10 +1813,12 @@ packages:
 - pypi: .
   name: snkmt
   version: 0.1.0
-  sha256: 388dace297e44542c8112a2373673853a500d5ba6b2d6b02b94bbfdc13d891ba
+  sha256: f91e4875d9a02f54459c7893f9cec88a5864a28fb8039ad108a3faf234b9ffcc
   requires_dist:
   - textual>=3.1.1
   - typer>=0.15.3
+  - sqlalchemy>=2.0.38
+  - snakemake-logger-plugin-sqlite>=0.1.1
   requires_python: '>=3.12'
   editable: true
 - pypi: https://files.pythonhosted.org/packages/01/72/a5bc6e76c34cebc071f758161dbe1453de8815ae6e662393910d3be6d70d/sqlalchemy-2.0.40-cp312-cp312-macosx_11_0_arm64.whl
@@ -2024,13 +2007,6 @@ packages:
   purls: []
   size: 89900
   timestamp: 1744302253997
-- pypi: https://files.pythonhosted.org/packages/31/08/aa4fdfb71f7de5176385bd9e90852eaf6b5d622735020ad600f2bab54385/typing_inspection-0.4.0-py3-none-any.whl
-  name: typing-inspection
-  version: 0.4.0
-  sha256: 50e72559fcd2a6367a19f7a7e610e6afcb9fac940c650290eed893d61386832f
-  requires_dist:
-  - typing-extensions>=4.12.0
-  requires_python: '>=3.9'
 - conda: https://conda.anaconda.org/conda-forge/noarch/typing-inspection-0.4.0-pyhd8ed1ab_0.conda
   sha256: 172f971d70e1dbb978f6061d3f72be463d0f629155338603450d8ffe87cbf89d
   md5: c5c76894b6b7bacc888ba25753bc8677
