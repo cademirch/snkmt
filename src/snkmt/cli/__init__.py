@@ -1,6 +1,6 @@
 import typer
 from typing import Optional
-from snakemake_logger_plugin_sqlite.db.session import Database
+from snkmt.db.session import Database
 
 app = typer.Typer(
     name="snkmt",

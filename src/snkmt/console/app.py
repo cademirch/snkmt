@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from snkmt.console.screens import WorkflowSummaryScreen
 
 
-class SmkitApp(App):
+class snkmtApp(App):
     """A Textual app for monitoring and analyzing Snakemake workflows."""
 
     CSS = """
@@ -26,6 +26,13 @@ class SmkitApp(App):
         content-align: center middle;
         text-align: center;
     }
+
+    DataTable {
+        .datatable--cursor {
+            background: transparent;
+            text-style: none;
+        }
+    }
     """
 
     BINDINGS = [
@@ -43,7 +50,7 @@ class SmkitApp(App):
         )
         with Container(id="main-container"):
             yield Static(
-                "Welcome to Smkit!\n\nSelect a workflow to view details.",
+                "Welcome to snkmt!\n\nSelect a workflow to view details.",
                 classes="welcome",
             )
 
@@ -54,11 +61,11 @@ class SmkitApp(App):
         self.bell()  # Just a placeholder for now
 
     def on_mount(self) -> None:
-        self.title = "smkit console"
+        self.title = "snkmt console"
         self.push_screen(WorkflowSummaryScreen(self.db_session))
 
 
 def run_app(db_session: Session):
     """Run the Textual app."""
-    app = SmkitApp(db_session)
+    app = snkmtApp(db_session)
     app.run()
