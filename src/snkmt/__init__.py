@@ -28,14 +28,14 @@ def list_workflows(
 
 @app.command("console")
 def launch_console(
-    workflow_id: Optional[int] = typer.Argument(
-        None, help="Workflow ID to view (if not provided, shows workflow selection)"
+    directory: Optional[str] = typer.Option(
+        None, "--db-path", "-d", help="Path to the database."
     ),
 ):
     """Launch the interactive console UI"""
     from snkmt.console.app import run_app
 
-    db = Database.get_database(create_db=False).get_session()
+    db = Database.get_database(db_path=directory).get_session()
     run_app(db)
 
 

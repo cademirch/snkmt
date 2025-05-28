@@ -37,7 +37,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/b3/38/89ba8ad64ae25be8de66a6d463314cf1eb366222074cfda9ee839c56a4b4/mdurl-0.1.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/28/51/da7f3ae4462e8bb98af0d5bdf2707f1b8c65a0d4f496e46b6afb06cbc286/msgpack-1.1.0-cp312-cp312-macosx_11_0_arm64.whl
       - pypi: https://files.pythonhosted.org/packages/b4/e2/3ca91c112644a395c8eae017144c907d173ea910c913ff8b62549dcf0bbf/multidict-6.4.3-cp312-cp312-macosx_11_0_arm64.whl
-      - pypi: https://files.pythonhosted.org/packages/6d/45/59578566b3275b8fd9157885918fcd0c4d74162928a5310926887b856a51/platformdirs-4.3.7-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/fe/39/979e8e21520d4e47a0bbe349e2713c0aac6f3d853d0e5b34d76206c439aa/platformdirs-4.3.8-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/ae/bd/c1e37265910752e6e5e8a4c1605d0129e5b7933c3dc3cf1b9b48ed83b364/propcache-0.3.1-cp312-cp312-macosx_11_0_arm64.whl
       - pypi: https://files.pythonhosted.org/packages/8a/0b/9fcc47d19c48b59121088dd6da2488a49d5f72dacf8262e2790a1d2c7d15/pygments-2.19.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/0d/9b/63f4c7ebc259242c89b3acafdb37b41d1185c07ff0011164674e9076b491/rich-14.0.0-py3-none-any.whl
@@ -199,6 +199,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/7c/fb/0006f86960ab8a2f69c9f496db657992000547f94f53a2f483fd611b4bd2/textual_serve-1.1.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/0c/5b/45cdfb64a3b855ce074ae607b9fc40bc82e7613b94e7612b030255c93a09/yarl-1.20.0-cp312-cp312-macosx_11_0_arm64.whl
       - pypi: .
+      - pypi: ../snakemake-logger-plugin-snkmt
 packages:
 - pypi: https://files.pythonhosted.org/packages/0f/15/5bf3b99495fb160b63f95972b81750f18f7f4e02ad051373b669d17d44f2/aiohappyeyeballs-2.6.1-py3-none-any.whl
   name: aiohappyeyeballs
@@ -1349,10 +1350,10 @@ packages:
   - pkg:pypi/plac?source=hash-mapping
   size: 26484
   timestamp: 1743816198
-- pypi: https://files.pythonhosted.org/packages/6d/45/59578566b3275b8fd9157885918fcd0c4d74162928a5310926887b856a51/platformdirs-4.3.7-py3-none-any.whl
+- pypi: https://files.pythonhosted.org/packages/fe/39/979e8e21520d4e47a0bbe349e2713c0aac6f3d853d0e5b34d76206c439aa/platformdirs-4.3.8-py3-none-any.whl
   name: platformdirs
-  version: 4.3.7
-  sha256: a03875334331946f13c549dbd8f4bac7a13a50a895a0eb1e8c6a8ace80d40a94
+  version: 4.3.8
+  sha256: ff7059bb7eb1179e2685604f4aaf157cfd9535242bd23742eadc3c13542139b4
   requires_dist:
   - furo>=2024.8.6 ; extra == 'docs'
   - proselint>=0.14 ; extra == 'docs'
@@ -1864,6 +1865,19 @@ packages:
   - pkg:pypi/snakemake-interface-storage-plugins?source=hash-mapping
   size: 19926
   timestamp: 1742480267140
+- pypi: ../snakemake-logger-plugin-snkmt
+  name: snakemake-logger-plugin-snkmt
+  version: 0.1.0
+  sha256: 0cd1d761f2e0688a132074a7dcfc8ce732f94b6da24eaeadef4aa344a70e145b
+  requires_dist:
+  - snakemake-interface-logger-plugins>=1.2.0
+  - sqlalchemy>=2.0.38
+  - pytest>=8.3.5 ; extra == 'dev'
+  - snakemake>=9.0.1 ; extra == 'dev'
+  - ruff>=0.9.10 ; extra == 'dev'
+  - loguru>=0.7.3 ; extra == 'dev'
+  requires_python: '>=3.11,<4.0'
+  editable: true
 - conda: https://conda.anaconda.org/bioconda/noarch/snakemake-minimal-9.3.3-pyhdfd78af_0.tar.bz2
   sha256: 8b410ecbd91913db77e2973facc430881f4506fd51ccbc5b0a9f697d235fbd58
   md5: e4770efb42a77a5e903a132533eb9ba6
@@ -1906,11 +1920,12 @@ packages:
 - pypi: .
   name: snkmt
   version: 0.1.0
-  sha256: 78925f2ee536f4bdfdf498e9d30e89ce5c643f9c2b44fb3e1cd87fb954ae93ac
+  sha256: e7703ea6a86be7e686bc094f21095ab1a15edc21da701f491e14ef9524c0b15a
   requires_dist:
   - textual>=3.1.1
   - typer>=0.15.3
   - sqlalchemy>=2.0.38
+  - platformdirs>=4.3.7,<5
   requires_python: '>=3.12'
   editable: true
 - pypi: https://files.pythonhosted.org/packages/01/72/a5bc6e76c34cebc071f758161dbe1453de8815ae6e662393910d3be6d70d/sqlalchemy-2.0.40-cp312-cp312-macosx_11_0_arm64.whl

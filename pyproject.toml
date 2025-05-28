@@ -8,7 +8,7 @@ requires-python = ">=3.12"
 dependencies = [
     "textual>=3.1.1",
     "typer>=0.15.3",
-    "sqlalchemy>=2.0.38",
+    "sqlalchemy>=2.0.38", "platformdirs>=4.3.7,<5",
 ]
 
 [project.scripts]
@@ -31,15 +31,20 @@ textual-dev = ">=1.7.0"
 
 
 [tool.pixi.feature.dev.pypi-dependencies]
-# snakemake-logger-plugin-sqlite = { path = "../snakemake-logger-plugin-sqlite", editable = true }
+snkmt = { path = ".", editable = true }
+snakemake-logger-plugin-snkmt = { path = "../snakemake-logger-plugin-snkmt", editable = true }
+
 
 [tool.pixi.feature.dev.tasks]
-demo = {cmd = "snakemake -d results -s workflows/simple-success.smk --logger sqlite --cores 1", cwd="demo"}
+demo = {cmd = "./run.sh", cwd="demo"}
 cleanup-demo ={cmd = "rm -r results", cwd="demo"}
 
 
 [tool.pixi.feature.dev.dependencies]
 snakemake = ">=9.3.3,<10"
+
+
+
 
 
 

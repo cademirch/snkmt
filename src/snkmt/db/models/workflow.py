@@ -20,6 +20,10 @@ class Workflow(Base):
     started_at: Mapped[datetime] = mapped_column(
         default=lambda: datetime.now(timezone.utc)
     )
+    updated_at: Mapped[datetime] = mapped_column(
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
     end_time: Mapped[Optional[datetime]]
     status: Mapped[Status] = mapped_column(Enum(Status), default="UNKNOWN")
     command_line: Mapped[Optional[str]]
@@ -46,6 +50,16 @@ class Workflow(Base):
         cascade="all, delete-orphan",
         lazy="selectin",
     )
+
+    @classmethod
+    def get_updated_since(
+        cls, session: Session, timestamp, limit: Optional[int] = None
+    ):
+        """Get workflows that have been updated since the given timestamp."""
+        query = session.query(cls).filter(cls.updated_at >= timestamp)
+        if limit:
+            query = query.limit(limit)
+        return query.all()
 
     @property
     def progress(self) -> float:

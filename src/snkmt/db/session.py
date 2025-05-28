@@ -1,3 +1,4 @@
+import os  # Add this import
 from pathlib import Path
 from typing import Optional
 from sqlalchemy import create_engine, inspect
@@ -14,15 +15,21 @@ class Database:
     """Simple connector for the Snakemake SQLite DB."""
 
     def __init__(self, db_path: Optional[str] = None, create_db: bool = True):
-        default = Path.cwd() / ".snakemake" / "log" / "snakemake.log.db"
-        db_file = Path(db_path) if db_path else default
+        env_db_path = os.getenv("SNKMT_DB_PATH")
+        default_db_path = Path.home() / ".snkmt" / "snkmt.db"
 
-        parent = db_file.parent
-        if not parent.exists():
+        if db_path:
+            db_file = Path(db_path)
+        elif env_db_path:
+            db_file = Path(env_db_path)
+        else:
+            db_file = default_db_path
+
+        if not db_file.parent.exists():
             if create_db:
-                parent.mkdir(parents=True, exist_ok=True)
+                db_file.parent.mkdir(parents=True, exist_ok=True)
             else:
-                raise DatabaseNotFoundError(f"No DB directory: {parent}")
+                raise DatabaseNotFoundError(f"No DB directory: {db_file.parent}")
 
         if not db_file.exists() and not create_db:
             raise DatabaseNotFoundError(f"DB file not found: {db_file}")
@@ -33,7 +40,7 @@ class Database:
             echo=False,
             pool_size=10,
             max_overflow=20,
-            pool_pre_ping=True,  # avoid “stale connection” errors
+            pool_pre_ping=True,
             future=True,
         )
         self.SessionLocal = sessionmaker(
