@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 
 class Workflow(Base):
-    __tablename__ = "workflows"  # Using plural for consistency
+    __tablename__ = "workflows"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
     snakefile: Mapped[Optional[str]]
     started_at: Mapped[datetime] = mapped_column(
@@ -42,7 +42,7 @@ class Workflow(Base):
     jobs: Mapped[list["Job"]] = relationship(
         "Job",
         back_populates="workflow",
-        lazy="dynamic",  # return a query object
+        lazy="dynamic",
     )
     errors: Mapped[list["Error"]] = relationship(
         "Error",

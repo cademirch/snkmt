@@ -1,8 +1,9 @@
 import uuid
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import ForeignKey, select, func, case
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, Session
+from datetime import datetime, timezone
 
 from snkmt.db.models.base import Base
 
@@ -17,6 +18,10 @@ class Rule(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str]
     workflow_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workflows.id"))
+    updated_at: Mapped[datetime] = mapped_column(
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
     workflow: Mapped["Workflow"] = relationship("Workflow", back_populates="rules")
     total_job_count: Mapped[int] = mapped_column(default=0)  # from run info
     jobs_finished: Mapped[int] = mapped_column(default=0)
@@ -32,6 +37,22 @@ class Rule(Base):
         if self.total_job_count == 0:
             return 0.0
         return self.jobs_finished / self.total_job_count
+
+    @classmethod
+    def get_updated_since(
+        cls,
+        session: Session,
+        workflow_id: uuid.UUID,
+        timestamp,
+        limit: Optional[int] = None,
+    ):
+        """Get rules for a workflow that have been updated since the given timestamp."""
+        query = session.query(cls).filter(
+            cls.workflow_id == workflow_id, cls.updated_at >= timestamp
+        )
+        if limit:
+            query = query.limit(limit)
+        return query.all()
 
     def get_job_counts(self, session):
         """Get all job counts in a single efficient query."""

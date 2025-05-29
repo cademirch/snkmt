@@ -15,7 +15,8 @@ from uuid import UUID
 from datetime import datetime
 from typing import Literal, List
 from rich.text import TextType
-from snkmt.console.table import UpdatingDataTable
+from snkmt.console.table import RuleTable, UpdatingDataTable, WorkflowTable
+from textual.reactive import reactive
 
 
 class StyledProgress(Text):
@@ -73,6 +74,13 @@ class AppHeader(Horizontal):
 class AppBody(Horizontal):
     """The body of the app"""
 
+class WorkflowDetails(Container):
+    workflow_id = reactive(None)
+
+    def __init__(self, session: Session, *args, **kwargs) -> None:
+        self.db_session = session
+        super().__init__(*args, **kwargs)
+
 
 class WorkflowDetail(Container):
     def __init__(self, session: Session, *args, **kwargs) -> None:
@@ -80,64 +88,84 @@ class WorkflowDetail(Container):
         super().__init__(*args, **kwargs)
 
     def compose(self) -> ComposeResult:
-        yield Static("Select a workflow to view details", id="detail-placeholder")
+        # Create the three main sections
+        self.overview_section = Container(classes="subsection", id="workflow-overview")
+        self.rules_section = Container(classes="subsection", id="workflow-rules")
+        self.errors_section = Container(classes="subsection", id="workflow-errors")
+
+        # Set up section titles and initial content
+        self.overview_section.border_title = "Workflow Info"
+        self.rules_section.border_title = "Rules"
+        self.errors_section.border_title = "Errors"
+
+        with self.overview_section:
+            yield Static("Select a workflow to view details", id="detail-placeholder")
+
+        yield self.rules_section
+        yield self.errors_section
 
     def show_workflow(self, workflow_id: UUID) -> None:
         """Display basic information about the selected workflow."""
-        self.remove_children()
+        # Clear all sections
+        self.overview_section.remove_children()
+        self.rules_section.remove_children()
+        self.errors_section.remove_children()
 
         workflow = self.db_session.scalars(
             select(Workflow).where(Workflow.id == workflow_id)
         ).one_or_none()
         if not workflow:
-            self.mount(
+            self.overview_section.mount(
                 Static(f"Workflow {workflow_id} not found", classes="error-message")
             )
             return
 
-        self.mount(Static(f"Selected Workflow: {workflow_id}", classes="detail-title"))
-        self.mount(Static(f"Status: {workflow.status.value}", classes="detail-data"))
-        self.mount(Static(f"Snakefile: {workflow.snakefile}", classes="detail-data"))
-        self.mount(
+        # Populate overview section
+        self.overview_section.mount(
+            Static(f"ID: {str(workflow_id)[-8:]}", classes="detail-data")
+        )
+        self.overview_section.mount(
+            Static(f"Status: {workflow.status.value}", classes="detail-data")
+        )
+        self.overview_section.mount(
+            Static(f"Snakefile: {workflow.snakefile}", classes="detail-data")
+        )
+        self.overview_section.mount(
             Static(
                 f"Progress: {format(workflow.progress, '.2%')}", classes="detail-data"
             )
         )
-        self.table = Table()
-        self.table.cursor_type = "row"
-        self.table.cursor_foreground_priority = "renderable"
-        self.col_keys = self.table.add_columns(
-            "Rule",
-            "Progress",
-            "# Jobs",
-            "# Jobs Finished",
-            "# Jobs Running",
-            "# Jobs Pending",
-            "# Jobs Failed",
-        )
-        for rule in workflow.rules:
-            job_counts = rule.get_job_counts(self.db_session)
-            self.table.add_row(
-                rule.name,
-                StyledProgress(rule.progress),
-                job_counts["total"],
-                job_counts["success"],
-                job_counts["running"],
-                job_counts["pending"],
-                job_counts["failed"],
-            )
-        self.mount(self.table)
+
+        # Populate rules section
+        self.table = RuleTable(workflow_id, self.db_session)
+        self.rules_section.mount(self.table)
+
+        # Populate errors section (placeholder for now)
+        failed_rules = [
+            rule
+            for rule in workflow.rules
+            if rule.get_job_counts(self.db_session)["failed"] > 0
+        ]
+        if failed_rules:
+            for rule in failed_rules:
+                job_counts = rule.get_job_counts(self.db_session)
+                error_summary = Static(
+                    f"▼ {rule.name} rule ({job_counts['failed']} failed jobs)",
+                    classes="error-summary",
+                )
+                self.errors_section.mount(error_summary)
+        else:
+            self.errors_section.mount(Static("No errors found", classes="no-errors"))
 
 
 class WorkflowDashboard(Container):
     def __init__(self, session: Session) -> None:
         self.db_session = session
-        self.table = UpdatingDataTable()
+        self.table = WorkflowTable(session)
         self.col_keys = self.table.add_columns(
             "UUID", "Status", "Snakefile", "Started At", "Progress"
         )
 
-        self.current_workflows = {}
         self.last_updated_at = None
         super().__init__()
 
@@ -162,7 +190,7 @@ class WorkflowDashboard(Container):
 
     def load_overview_data(self) -> None:
         """Load overview data from the database and populate the overview section."""
-
+        # TODO figure out what to put here if even having overview
         total = self.db_session.query(func.count(Workflow.id)).scalar()
         running = self.db_session.scalar(
             select(func.count(Workflow.id)).where(Workflow.status == "RUNNING")
@@ -182,11 +210,6 @@ class WorkflowDashboard(Container):
     def on_mount(self) -> None:
         """Load data when the screen is mounted."""
         self.load_overview_data()
-        self.initial_load_workflow_data()
-        self.set_interval(
-            1.0,
-            self.update_workflow_data,
-        )
 
     def workflow_to_row(self, workflow: Workflow) -> List[TextType]:
         workflow_id = str(workflow.id)
@@ -202,11 +225,10 @@ class WorkflowDashboard(Container):
 
     def initial_load_workflow_data(self) -> None:
         """Initial load of all workflow data from the database."""
-
+        # TODO pagination
         workflows = Workflow.list_all(self.db_session, limit=100)
         self.log.debug(f"Initial workflow table load: {len(workflows)} workflows.")
         self.last_updated_at = datetime.now()
-        self.current_workflows.clear()
 
         for workflow in workflows:
             workflow_id = str(workflow.id)
@@ -231,7 +253,7 @@ class WorkflowDashboard(Container):
         for workflow in updated_workflows:
             workflow_id = str(workflow.id)
             row_data = self.workflow_to_row(workflow)
-            self.table.update_row(workflow_id, row_data)
+            # self.table.update_row(workflow_id, row_data)
             self.log.debug(f"Updated workflow {workflow_id}")
 
         self.last_updated_at = datetime.now()

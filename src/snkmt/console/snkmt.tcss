@@ -59,6 +59,18 @@ WorkflowDashboard {
   }
 }
 
+.subsection {
+  border: round $accent 20%;
+  border-title-color: $text-accent 50%;
+  border-title-align: center;
+
+  &:focus-within {
+    border: round $accent 800%;
+    border-title-color: $foreground;
+    border-title-style: b;
+  }
+}
+
 
 #detail {
     padding: 1;
