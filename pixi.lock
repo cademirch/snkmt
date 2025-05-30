@@ -1920,7 +1920,7 @@ packages:
 - pypi: .
   name: snkmt
   version: 0.1.0
-  sha256: e7703ea6a86be7e686bc094f21095ab1a15edc21da701f491e14ef9524c0b15a
+  sha256: 726f857b12212cff1ec613f02943c913e92bdbf68877f2e5d6bebbd32d749348
   requires_dist:
   - textual>=3.1.1
   - typer>=0.15.3

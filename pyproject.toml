@@ -38,6 +38,8 @@ snakemake-logger-plugin-snkmt = { path = "../snakemake-logger-plugin-snkmt", edi
 [tool.pixi.feature.dev.tasks]
 demo = {cmd = "./run.sh", cwd="demo"}
 cleanup-demo ={cmd = "rm -r results", cwd="demo"}
+console = {cmd = "textual run --dev -c snkmt console"}
+dev-console = {cmd = "textual console -x SYSTEM -x EVENT"}
 
 
 [tool.pixi.feature.dev.dependencies]

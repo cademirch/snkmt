@@ -1,7 +1,7 @@
 from snkmt.db.models.base import Base
 from snkmt.db.models.enums import Status
 
-from sqlalchemy import JSON, Enum, select
+from sqlalchemy import JSON, Enum, select, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship, Session
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any, TYPE_CHECKING, List
@@ -108,3 +108,22 @@ class Workflow(Base):
             query = query.offset(offset)
 
         return list(session.execute(query).scalars())
+
+    @classmethod
+    def get_status_counts(cls, session: Session) -> Dict[str, int]:
+        """
+        Returns a dictionary with counts of workflows by status:
+        running, success, and failed.
+        """
+        status_map = {
+            "running": [Status.RUNNING],
+            "success": [Status.SUCCESS],
+            "failed": [Status.ERROR],
+        }
+        counts = {key: 0 for key in status_map}
+        query = session.query(cls.status, func.count(cls.id)).group_by(cls.status)
+        for status, count in query:
+            for key, statuses in status_map.items():
+                if status in statuses:
+                    counts[key] += count
+        return counts

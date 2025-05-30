@@ -1,6 +1,6 @@
 from pathlib import Path
 from textual.app import App, ComposeResult
-from textual.widgets import Static, Placeholder, Header, Footer, DataTable
+from textual.widgets import Static, Placeholder, Header, Footer, DataTable, Label
 from textual.screen import Screen
 from textual.containers import Container, Horizontal
 from textual.message import Message
@@ -15,7 +15,8 @@ from uuid import UUID
 from datetime import datetime
 from typing import Literal, List
 from rich.text import TextType
-from snkmt.console.table import RuleTable, UpdatingDataTable, WorkflowTable
+from snkmt.console.widgets import RuleTable, WorkflowTable
+from snkmt.version import VERSION
 from textual.reactive import reactive
 
 
@@ -50,36 +51,20 @@ class StyledStatus(Text):
         super().__init__(status_str, style=color)
 
 
-class Table(DataTable):
-    """
-    Generic DataTable that uses Enter key to select cells.
-    """
-
-    class Selected(Message):
-        def __init__(self, table: "Table"):
-            super().__init__()
-            self.table = table
-
-    def key_enter(self, event: events.Key) -> bool:
-        """
-        Callback for pressing enter key.
-        """
-        return self.post_message(self.Selected(self))
-
-
 class AppHeader(Horizontal):
     """The header of the app."""
+
+    def __init__(self, db_url: str, *args, **kwargs):
+        self.db_url = db_url
+        super().__init__(*args, **kwargs)
+
+    def compose(self) -> ComposeResult:
+        yield Label(f"[b]snkmt[/] [dim]{VERSION}[/]", id="app-title")
+        yield Label(f"Connected to: {self.db_url}", id="app-db-path")
 
 
 class AppBody(Horizontal):
     """The body of the app"""
-
-class WorkflowDetails(Container):
-    workflow_id = reactive(None)
-
-    def __init__(self, session: Session, *args, **kwargs) -> None:
-        self.db_session = session
-        super().__init__(*args, **kwargs)
 
 
 class WorkflowDetail(Container):
@@ -88,12 +73,10 @@ class WorkflowDetail(Container):
         super().__init__(*args, **kwargs)
 
     def compose(self) -> ComposeResult:
-        # Create the three main sections
         self.overview_section = Container(classes="subsection", id="workflow-overview")
         self.rules_section = Container(classes="subsection", id="workflow-rules")
         self.errors_section = Container(classes="subsection", id="workflow-errors")
 
-        # Set up section titles and initial content
         self.overview_section.border_title = "Workflow Info"
         self.rules_section.border_title = "Rules"
         self.errors_section.border_title = "Errors"
@@ -105,8 +88,7 @@ class WorkflowDetail(Container):
         yield self.errors_section
 
     def show_workflow(self, workflow_id: UUID) -> None:
-        """Display basic information about the selected workflow."""
-        # Clear all sections
+        # re render all sections. this probably inefficient but oh well.
         self.overview_section.remove_children()
         self.rules_section.remove_children()
         self.errors_section.remove_children()
@@ -162,119 +144,27 @@ class WorkflowDashboard(Container):
     def __init__(self, session: Session) -> None:
         self.db_session = session
         self.table = WorkflowTable(session)
-        self.col_keys = self.table.add_columns(
-            "UUID", "Status", "Snakefile", "Started At", "Progress"
-        )
-
-        self.last_updated_at = None
         super().__init__()
 
     def compose(self) -> ComposeResult:
-        with Container(id="left-panel", classes="dashboard-panel"):
-            self.overview = Container(classes="section", id="overview")
-            self.workflows = Container(classes="section", id="workflows")
-            self.overview.border_title = "Overview"
-            self.workflows.border_title = "Workflows"
-            self.overview.styles.height = "1fr"
-            self.workflows.styles.height = "3fr"
-            yield self.overview
-            with self.workflows:
-                yield self.table
+        self.workflows = Container(classes="section", id="workflows")
+        self.workflows.border_title = "Workflows"
 
-        with Container(id="right-panel", classes="dashboard-panel"):
-            self.detail = WorkflowDetail(
-                session=self.db_session, classes="section", id="detail"
-            )
-            self.detail.border_title = "Workflow Details"
-            yield self.detail
+        with self.workflows:
+            yield self.table
 
-    def load_overview_data(self) -> None:
-        """Load overview data from the database and populate the overview section."""
-        # TODO figure out what to put here if even having overview
-        total = self.db_session.query(func.count(Workflow.id)).scalar()
-        running = self.db_session.scalar(
-            select(func.count(Workflow.id)).where(Workflow.status == "RUNNING")
+        self.detail = WorkflowDetail(
+            session=self.db_session, classes="section", id="detail"
         )
-        success = self.db_session.scalar(
-            select(func.count(Workflow.id)).where(Workflow.status == "SUCCESS")
-        )
-        error = self.db_session.scalar(
-            select(func.count(Workflow.id)).where(Workflow.status == "ERROR")
-        )
+        self.detail.border_title = "Workflow Details"
+        yield self.detail
 
-        self.overview.mount(Static(f"Total: {total}", classes="overview-metric"))
-        self.overview.mount(Static(f"Running: {running}", classes="overview-metric"))
-        self.overview.mount(Static(f"Success: {success}", classes="overview-metric"))
-        self.overview.mount(Static(f"Error: {error}", classes="overview-metric"))
-
-    def on_mount(self) -> None:
-        """Load data when the screen is mounted."""
-        self.load_overview_data()
-
-    def workflow_to_row(self, workflow: Workflow) -> List[TextType]:
-        workflow_id = str(workflow.id)
-        status = StyledStatus(workflow.status)
-        snakefile = Path(workflow.snakefile).name if workflow.snakefile else "N/A"
-        started_at = (
-            workflow.started_at.strftime("%Y-%m-%d %H:%M:%S")
-            if workflow.started_at
-            else "N/A"
-        )
-        progress = StyledProgress(workflow.progress)
-        return [workflow_id[-6:], status, snakefile, started_at, progress]
-
-    def initial_load_workflow_data(self) -> None:
-        """Initial load of all workflow data from the database."""
-        # TODO pagination
-        workflows = Workflow.list_all(self.db_session, limit=100)
-        self.log.debug(f"Initial workflow table load: {len(workflows)} workflows.")
-        self.last_updated_at = datetime.now()
-
-        for workflow in workflows:
-            workflow_id = str(workflow.id)
-            row_data = self.workflow_to_row(workflow)
-
-            self.table.add_row(
-                *row_data,
-                key=workflow_id,
-            )
-
-    def update_workflow_data(self) -> None:
-        """Incrementally update workflow data."""
-
-        updated_workflows = Workflow.get_updated_since(
-            self.db_session, self.last_updated_at, limit=100
-        )
-
-        self.log.debug(
-            f"Found {len(updated_workflows)} updated workflows since last check"
-        )
-
-        for workflow in updated_workflows:
-            workflow_id = str(workflow.id)
-            row_data = self.workflow_to_row(workflow)
-            # self.table.update_row(workflow_id, row_data)
-            self.log.debug(f"Updated workflow {workflow_id}")
-
-        self.last_updated_at = datetime.now()
-
-        # TODO maybe handle removing workflows from the table if they were somehow deleted from db?
-
-    def on_data_table_row_selected(self, event: Table.RowSelected) -> None:
-        """Handle row selection event."""
-        workflow_id = UUID(event.row_key.value)
-        self.log.warning(f"Selected workflow: {workflow_id}")
-
-        # Update the detail panel with the selected workflow
-        self.detail.show_workflow(workflow_id)
-
-    def on_data_table_row_highlighted(self, event: Table.RowSelected) -> None:
-        """Handle row selection event."""
-        if event.data_table is not self.table:
-            return
-        workflow_id = UUID(event.row_key.value)
-
-        self.log.warning(f"Highlighted workflow: {workflow_id}")
+    def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
+        """Handle row selection (clicking or pressing enter)."""
+        if isinstance(event.data_table, WorkflowTable):
+            workflow_id = UUID(event.row_key.value)
+            self.log.debug(f"Selected workflow: {workflow_id}")
+            self.detail.show_workflow(workflow_id)
 
 
 class DashboardScreen(Screen):
@@ -283,7 +173,7 @@ class DashboardScreen(Screen):
         self.session = session
 
     def compose(self) -> ComposeResult:
-        yield AppHeader()
+        yield AppHeader(str(self.session.bind.url))  # type: ignore
         yield WorkflowDashboard(self.session)
         yield Footer(id="footer")
 

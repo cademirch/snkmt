@@ -6,10 +6,21 @@ AppHeader {
   color: $text-primary;
   padding: 1 3;
   height: auto;
-  & > #app-user-host {
+  & > #app-db-path {
       dock: right;
       color: $text-muted;
   }
+  & > #app-header-summary {
+      width: 1fr;
+      content-align: center middle;
+  }
+ 
+}
+
+WorkflowTable {
+    width: auto;
+    max-width: 80;
+    content-align: center middle;
 }
 
 .overview {
@@ -29,34 +40,26 @@ WorkflowDashboard {
     height: 1fr;  
 }
 
-#left-panel {
-    width: 2fr;
-}
-
-#right-panel {
-    width: 3fr;
-}
-
-.dashboard-panel {
-    height: 1fr;
-    padding: 0 1;
-}
-
 #workflows {
-    padding: 0 1;
+    width: auto;
+    padding: 0 1;  
+    align: center top;
 }
 
+#detail {
+    width: 1fr;  
+    padding: 0 1;  
+}
 
 .section {
-  border: round $accent 40%;
-  border-title-color: $text-accent 50%;
-  border-title-align: right;
+    border: round $accent 40%;
+    border-title-color: $text-accent 50%;
+    border-title-align: right;
+    height: 1fr;  
 
-  &:focus-within {
-    border: round $accent 100%;
-    border-title-color: $foreground;
-    border-title-style: b;
-  }
+    &:focus-within {
+        border: round $accent 100%;
+    }
 }
 
 .subsection {
