@@ -41,6 +41,7 @@ class Database:
         db_path: Optional[str] = None,
         create_db: bool = True,
         auto_migrate: bool = True,
+        ignore_version: bool = False,
     ):
         default_db_path = SNKMT_DIR / "snkmt.db"
 
@@ -93,9 +94,10 @@ class Database:
             if auto_migrate:
                 self.migrate()
             else:
-                raise DBVersionError(
-                    f"Database version {current_version} needs migration but auto_migrate is disabled Please use snkmt db migrate command."
-                )
+                if not ignore_version:
+                    raise DBVersionError(
+                        f"Database version {current_version} needs migration but auto_migrate is disabled Please use snkmt db migrate command."
+                    )
 
     def migrate(
         self,
@@ -120,8 +122,17 @@ class Database:
         assert self.session
         _, newest_allowed_version = self.get_db_version_required()
 
-        # Determine version in db.
+        if desired_version is None:
+            desired_version = newest_allowed_version
+
         version = self.get_version()
+
+        if version == desired_version:
+            logger.info(
+                f"Already at desired db version {version}. No migrations performed."
+            )
+            return
+
         if version > newest_allowed_version:
             # db version is too new to work with, abort.
             raise DBVersionError(
@@ -140,10 +151,6 @@ class Database:
         config = AlembicConfig(alembic_config_file)
         config.set_main_option("script_location", str(alembic_script_location))
         config.session = self.session  # type: ignore
-
-        if desired_version is None:
-            # Default to latest version.
-            desired_version = self.get_all_versions()[-1]
 
         # Perform migration.
         if desired_version > version:

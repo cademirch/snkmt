@@ -1,3 +1,5 @@
+from pathlib import Path
+from re import L
 import typer
 from typing import Optional
 from snkmt.db.session import Database
@@ -9,20 +11,13 @@ app = typer.Typer(
     no_args_is_help=True,
 )
 
+db_app = typer.Typer()
+app.add_typer(db_app, name="db")
 
+
+### MAIN APP COMMANDS
 @app.callback()
 def callback():
-    pass
-
-
-@app.command("ls")
-def list_workflows(
-    directory: str = typer.Option(
-        None, "--directory", "-d", help="Path to the workflow directory"
-    ),
-    limit: int = typer.Option(4, "--limit", "-n", help="Number of workflows to show"),
-):
-    """List workflows in database"""
     pass
 
 
@@ -35,9 +30,25 @@ def launch_console(
     """Launch the interactive console UI"""
     from snkmt.console.app import run_app
 
-    db = Database.get_database(db_path=directory).get_session()
+    db = Database(db_path=directory).get_session()
     run_app(db)
 
+#### DB APP COMMANDS
+@db_app.callback()
+def db_callback():
+    pass
+
+
+@db_app.command("info")
+def db_info(db: Optional[str]):
+    database = Database(db, create_db=False, auto_migrate=False)
+    print(f"Database info: {database.get_db_info()}")
+
+
+@db_app.command("migrate")
+def db_migrate(db: Optional[str]):
+    database = Database(db, create_db=False, auto_migrate=False, ignore_version=True)
+    database.migrate()
 
 def main():
     app()
