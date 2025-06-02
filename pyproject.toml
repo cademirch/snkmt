@@ -1,14 +1,17 @@
 [project]
 name = "snkmt"
 version = "0.1.0"
-description = "Add your description here"
+description = "Realtime monitoring of Snakemake workflows"
 readme = "README.md"
 authors = [{ name = "Cade Mirchandani", email = "cmirchan@ucsc.edu" }]
 requires-python = ">=3.12"
 dependencies = [
     "textual>=3.1.1",
     "typer>=0.15.3",
-    "sqlalchemy>=2.0.38", "alembic>=1.16.1,<2", "platformdirs>=4.3.8,<5", "loguru>=0.7.3,<0.8",
+    "sqlalchemy>=2.0.38",
+    "alembic>=1.16.1,<2",
+    "platformdirs>=4.3.8,<5",
+    "loguru>=0.7.3,<0.8",
 ]
 
 [project.scripts]
@@ -24,6 +27,7 @@ platforms = ["osx-arm64"]
 
 [tool.pixi.environments]
 dev = { features = ["dev"] }
+publish = { features = ["publish"] }
 
 [tool.pixi.pypi-dependencies]
 snkmt = { path = ".", editable = true }
@@ -34,16 +38,49 @@ textual-dev = ">=1.7.0"
 snkmt = { path = ".", editable = true }
 snakemake-logger-plugin-snkmt = { git = "https://github.com/cademirch/snakemake-logger-plugin-snkmt.git", editable = true }
 
+[tool.pixi.feature.dev.dependencies]
+pytest = ">=8.3.5,<9"
+ruff = ">=0.10.0,<0.11"
+mypy = ">=1.15.0,<2"
+pytest-cov = ">=6.0.0,<7"
+snakemake = ">=9.3.3,<10"
 
 [tool.pixi.feature.dev.tasks]
 demo = {cmd = "./run.sh", cwd="demo"}
 cleanup-demo ={cmd = "rm -r results", cwd="demo"}
 console = {cmd = "textual run --dev -c snkmt console"}
 dev-console = {cmd = "textual console -x SYSTEM -x EVENT"}
+format = "ruff format src"
+lint = "ruff check"
+type-check = "mypy src/"
+qc = { depends-on = ["format", "lint", "type-check"] }
+
+[tool.pixi.feature.dev.tasks.test]
+cmd = [
+  "pytest",
+  "--cov=snkmt",
+  "--cov-report=xml:coverage-report/coverage.xml",
+  "--cov-report=term-missing",
+]
+
+# Publish
+[tool.pixi.feature.publish.dependencies]
+twine = ">=6.1.0,<7"
+python-build = ">=1.2.2,<2"
+
+[tool.pixi.feature.publish.tasks]
+build = { cmd = "python -m build", description = "Build the package into the dist/ directory" }
+check-build = { cmd = "python -m twine check dist/*", depends-on = [
+  "build",
+], description = "Check that the package can be uploaded" }
 
 
-[tool.pixi.feature.dev.dependencies]
-snakemake = ">=9.3.3,<10"
+[tool.mypy]
+ignore_missing_imports = true # Temporary until https://github.com/snakemake/snakemake-interface-common/pull/55
+disallow_untyped_defs = true
+warn_no_return = true
+
+
 
 
 

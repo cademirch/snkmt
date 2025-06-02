@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches-ignore: []
+
+permissions:
+  contents: read
+  checks: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  quality-control:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Install Pixi
+        uses: prefix-dev/setup-pixi@v0.8.3
+        with:
+          environments: dev
+          pixi-version: v0.42.1
+
+      - name: Ruff Format
+        if: always()
+        run: |
+          pixi run --environment dev format --check
+
+      - name: Ruff lint
+        if: always()
+        run: |
+          pixi run --environment dev lint --diff
+      - name: Mypy
+        if: always()
+        run: |
+          pixi run --environment dev type-check
+
+      - name: Collect QC
+        run: echo "All quality control checks passed"
+
+  testing:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Pixi
+        uses: prefix-dev/setup-pixi@v0.8.3
+        with:
+          environments: dev
+          pixi-version: v0.42.1
+
+      - name: Run tests
+        run: pixi run --environment dev test --show-capture=all -s -vv
+
+      - name: Upload lockfile as artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        id: upload-artifact
+        with:
+          name: pixi.lock.testing-${{ github.run_number }}
+          path: pixi.lock
+          retention-days: 1
+          overwrite: true
