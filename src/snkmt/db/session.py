@@ -80,12 +80,21 @@ class Database:
         current_version = self.get_version()
         latest_version = self.get_all_versions()[-1]
 
-        if current_version < latest_version:
+        if current_version == null_db_version:
+            self.session.add(
+                DBVersion(
+                    id=latest_version.id,
+                    major=latest_version.major,
+                    minor=latest_version.minor,
+                )
+            )
+            self.session.commit()
+        elif current_version < latest_version:
             if auto_migrate:
                 self.migrate()
             else:
                 raise DBVersionError(
-                    f"Database version {current_version} needs migration but auto_migrate is disabled"
+                    f"Database version {current_version} needs migration but auto_migrate is disabled Please use snkmt db migrate command."
                 )
 
     def migrate(
@@ -222,10 +231,3 @@ class Database:
             "engine": str(self.engine.url),
             "schema_revision": self.get_version().id,
         }
-
-    @classmethod
-    def get_database(
-        cls, db_path: Optional[str] = None, create_db: bool = True
-    ) -> "Database":
-        """Factory alias for the constructor."""
-        return cls(db_path=db_path, create_db=create_db)
