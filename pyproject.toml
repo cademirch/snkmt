@@ -32,7 +32,7 @@ textual-dev = ">=1.7.0"
 
 [tool.pixi.feature.dev.pypi-dependencies]
 snkmt = { path = ".", editable = true }
-snakemake-logger-plugin-snkmt = { path = "../snakemake-logger-plugin-snkmt", editable = true }
+snakemake-logger-plugin-snkmt = { git = "https://github.com/cademirch/snakemake-logger-plugin-snkmt.git", editable = true }
 
 
 [tool.pixi.feature.dev.tasks]
