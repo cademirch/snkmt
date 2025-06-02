@@ -65,6 +65,8 @@ class RuleTable(DataTable):
         self.cursor_foreground_priority = "renderable"
 
     def on_mount(self) -> None:
+        if self.workflow_id is None:
+            return
         if self.last_update is None:
             # TODO move this query to Rule and setup limits/offsets like workflow
             rules = self.db_session.scalars(

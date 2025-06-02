@@ -8,7 +8,7 @@ requires-python = ">=3.12"
 dependencies = [
     "textual>=3.1.1",
     "typer>=0.15.3",
-    "sqlalchemy>=2.0.38", "platformdirs>=4.3.7,<5",
+    "sqlalchemy>=2.0.38", "alembic>=1.16.1,<2", "platformdirs>=4.3.8,<5", "loguru>=0.7.3,<0.8",
 ]
 
 [project.scripts]
