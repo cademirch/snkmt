@@ -1,5 +1,3 @@
-from pathlib import Path
-from re import L
 import typer
 from typing import Optional
 from snkmt.db.session import Database
@@ -33,6 +31,7 @@ def launch_console(
     db = Database(db_path=directory).get_session()
     run_app(db)
 
+
 #### DB APP COMMANDS
 @db_app.callback()
 def db_callback():
@@ -49,6 +48,7 @@ def db_info(db: Optional[str]):
 def db_migrate(db: Optional[str]):
     database = Database(db, create_db=False, auto_migrate=False, ignore_version=True)
     database.migrate()
+
 
 def main():
     app()

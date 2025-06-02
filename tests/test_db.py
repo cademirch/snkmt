@@ -1,9 +1,8 @@
 import pytest
 from pathlib import Path
-from snkmt.db.session import Database, DatabaseNotFoundError
-from snkmt.db.models.version import DBVersionError, DBVersion
+from snkmt.db.session import Database
+from snkmt.db.models.version import DBVersion
 import tempfile
-import os
 
 
 @pytest.fixture

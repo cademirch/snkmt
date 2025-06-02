@@ -1,5 +1,4 @@
 from typing import Any
-import uuid
 from snkmt.db.models.base import Base
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import String

@@ -2,31 +2,22 @@ from pathlib import Path
 from textual.app import App, ComposeResult
 from textual.widgets import (
     Static,
-    Placeholder,
-    Header,
     Footer,
     DataTable,
     Label,
     Collapsible,
-    Tree,
     ListItem,
     ListView,
     Log,
 )
 from textual.screen import Screen, ModalScreen
 from textual.containers import Container, Horizontal
-from textual.message import Message
-from textual import events
-from typing import Optional, Tuple
 from sqlalchemy.orm import Session
-from sqlalchemy import func, select
+from sqlalchemy import select
 from snkmt.db.models import Workflow, Rule
 from snkmt.db.models.enums import Status, FileType
 from rich.text import Text
 from uuid import UUID
-from datetime import datetime, timezone
-from typing import Literal, List
-from rich.text import TextType
 from snkmt.console.widgets import RuleTable, WorkflowTable, StyledProgress, StyledStatus
 from snkmt.version import VERSION
 from textual.reactive import reactive
@@ -362,6 +353,7 @@ class snkmtApp(App):
         if list_item.name:
             self.log.debug(f"log file selected: {list_item.name}")
             self.push_screen(LogFileModal(Path(list_item.name)))
+
 
 def run_app(db_session: Session):
     """Run the Textual app."""

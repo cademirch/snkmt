@@ -1,13 +1,10 @@
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Callable, Hashable
+from typing import List
 from uuid import UUID
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from textual.widgets import DataTable
-from textual.widgets.data_table import ColumnKey
-from textual import events
-from textual.message import Message
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from rich.text import TextType, Text
 
 from snkmt.db.models.rule import Rule
