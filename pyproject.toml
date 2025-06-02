@@ -23,7 +23,7 @@ build-backend = "hatchling.build"
 
 [tool.pixi.workspace]
 channels = ["conda-forge", "bioconda"]
-platforms = ["osx-arm64"]
+platforms = ["osx-arm64", "linux-64"]
 
 [tool.pixi.environments]
 dev = { features = ["dev"] }
