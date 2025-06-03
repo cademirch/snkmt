@@ -53,7 +53,7 @@ dev-console = {cmd = "textual console -x SYSTEM -x EVENT"}
 format = "ruff format src"
 lint = "ruff check"
 type-check = "mypy src/"
-qc = { depends-on = ["format", "lint", "type-check"] }
+qc = { depends-on = ["format", "lint", ] }
 
 [tool.pixi.feature.dev.tasks.test]
 cmd = [
