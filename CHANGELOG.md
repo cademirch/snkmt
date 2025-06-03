@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/cademirch/snkmt/compare/v0.1.0...v0.1.1) (2025-06-03)
+
+
+### Documentation
+
+* add readme and screenshots ([d45e3fc](https://github.com/cademirch/snkmt/commit/d45e3fc71e4eb727182b8a98ddc881f045650b1a))
+
 ## 0.1.0 (2025-06-03)
 
 
