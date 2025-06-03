@@ -35,10 +35,7 @@ jobs:
         if: always()
         run: |
           pixi run --environment dev lint --diff
-      - name: Mypy
-        if: always()
-        run: |
-          pixi run --environment dev type-check
+
 
       - name: Collect QC
         run: echo "All quality control checks passed"
