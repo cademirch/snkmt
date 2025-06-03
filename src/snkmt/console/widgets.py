@@ -44,6 +44,10 @@ class StyledStatus(Text):
 
 
 class RuleTable(DataTable):
+    BINDINGS = [
+        ("enter", "select_cursor", "Select"),
+    ]
+
     def __init__(self, workflow_id: UUID, db_session: Session, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.workflow_id = workflow_id
@@ -116,6 +120,10 @@ class RuleTable(DataTable):
 
 
 class WorkflowTable(DataTable):
+    BINDINGS = [
+        ("enter", "select_cursor", "Select"),
+    ]
+
     def __init__(self, db_session: Session, *args, **kwargs):
         super().__init__(*args, **kwargs)
 

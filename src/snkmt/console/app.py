@@ -293,6 +293,11 @@ class WorkflowDetail(Container):
 
 
 class WorkflowDashboard(Container):
+    BINDINGS = [
+        ("tab", "focus_next", "Next"),
+        ("shift+tab", "focus_previous", "Previous"),
+    ]
+
     def __init__(self, session: Session) -> None:
         self.db_session = session
         self.table = WorkflowTable(session)
@@ -320,6 +325,11 @@ class WorkflowDashboard(Container):
 
 
 class DashboardScreen(Screen):
+    BINDINGS = [
+        ("tab", "focus_next", "Next"),
+        ("shift+tab", "focus_previous", "Previous"),
+    ]
+
     def __init__(self, session: Session) -> None:
         super().__init__()
         self.session = session
@@ -336,7 +346,9 @@ class snkmtApp(App):
     CSS_PATH = "snkmt.tcss"
     BINDINGS = [
         ("q", "quit", "Quit"),
-        ("?", "toggle_help", "Help"),
+        ("ctrl+c", "quit", "Quit"),
+        ("tab", "focus_next", "Next"),
+        ("shift+tab", "focus_previous", "Previous"),
     ]
 
     def __init__(self, db_session: Session):
@@ -353,6 +365,14 @@ class snkmtApp(App):
         if list_item.name:
             self.log.debug(f"log file selected: {list_item.name}")
             self.push_screen(LogFileModal(Path(list_item.name)))
+
+    def action_focus_next(self) -> None:
+        """Focus the next widget."""
+        self.screen.focus_next()
+
+    def action_focus_previous(self) -> None:
+        """Focus the previous widget."""
+        self.screen.focus_previous()
 
 
 def run_app(db_session: Session):
