@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.1](https://github.com/cademirch/snkmt/compare/v0.1.0...v0.1.1) (2025-06-10)
+
+
+### Bug Fixes
+
+* lower min python version ([3f8c6f8](https://github.com/cademirch/snkmt/commit/3f8c6f826c05bb902ec8eee5a53ee29327b7c650))
+
+
+### Documentation
+
+* add readme and screenshots ([d45e3fc](https://github.com/cademirch/snkmt/commit/d45e3fc71e4eb727182b8a98ddc881f045650b1a))
+
 ## 0.1.0 (2025-06-03)
 
 
