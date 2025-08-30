@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/cademirch/snkmt/compare/v0.1.1...v0.1.2) (2025-08-30)
+
+
+### Bug Fixes
+
+* remove db logfile ([#8](https://github.com/cademirch/snkmt/issues/8)) ([565fbf7](https://github.com/cademirch/snkmt/commit/565fbf703a7689fd2ebafa597049c6d842a90510))
+
 ## [0.1.1](https://github.com/cademirch/snkmt/compare/v0.1.0...v0.1.1) (2025-06-10)
 
 
