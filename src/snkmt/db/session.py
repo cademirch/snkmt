@@ -59,8 +59,7 @@ class Database:
 
         if not db_file.exists() and not create_db:
             raise DatabaseNotFoundError(f"DB file not found: {db_file}")
-        logfile = db_file.parent / "snkmt.log"
-        logger.add(logfile)
+
         self.db_path = str(db_file)
         self.engine = create_engine(
             f"sqlite:///{self.db_path}",
