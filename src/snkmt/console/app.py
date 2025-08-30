@@ -14,14 +14,14 @@ from textual.screen import Screen, ModalScreen
 from textual.containers import Container, Horizontal
 from sqlalchemy.orm import Session
 from sqlalchemy import select
-from snkmt.db.models import Workflow, Rule
-from snkmt.db.models.enums import Status, FileType
+from snkmt.core.models import Workflow, Rule
+from snkmt.types.enums import Status, FileType
 from rich.text import Text
 from uuid import UUID
 from snkmt.console.widgets import RuleTable, WorkflowTable, StyledProgress, StyledStatus
 from snkmt.version import VERSION
 from textual.reactive import reactive
-from snkmt.db.models import Job
+from snkmt.core.models import Job
 
 
 class AppHeader(Horizontal):

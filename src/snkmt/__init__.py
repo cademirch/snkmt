@@ -1,6 +1,6 @@
 import typer
 from typing import Optional
-from snkmt.db.session import Database
+from snkmt.core.db.session import Database
 
 app = typer.Typer(
     name="snkmt",

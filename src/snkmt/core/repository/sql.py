@@ -5,10 +5,10 @@ from typing import Optional, List
 from datetime import datetime
 from uuid import UUID
 
-from snkmt.db.models import Workflow, Rule, Job, File
-from snkmt.db.models.enums import Status, FileType
-from snkmt.persistence.repository import WorkflowRepository
-from snkmt.persistence.dto import (
+from snkmt.core.models import Workflow, Rule, Job, File
+from snkmt.types.enums import Status, FileType
+from snkmt.core.repository import WorkflowRepository
+from snkmt.types.dto import (
     WorkflowDTO,
     RuleDTO,
     JobDTO,

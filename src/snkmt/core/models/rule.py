@@ -5,12 +5,12 @@ from sqlalchemy import ForeignKey, select, func, case
 from sqlalchemy.orm import Mapped, mapped_column, relationship, Session
 from datetime import datetime, timezone
 
-from snkmt.db.models.base import Base
+from snkmt.core.models.base import Base
 
 if TYPE_CHECKING:
-    from snkmt.db.models.job import Job
-    from snkmt.db.models.workflow import Workflow
-    from snkmt.db.models.error import Error
+    from snkmt.core.models.job import Job
+    from snkmt.core.models.workflow import Workflow
+    from snkmt.core.models.error import Error
 
 
 class Rule(Base):
@@ -56,8 +56,8 @@ class Rule(Base):
 
     def get_job_counts(self, session):
         """Get all job counts in a single efficient query."""
-        from snkmt.db.models.job import Job
-        from snkmt.db.models.enums import Status
+        from snkmt.core.models.job import Job
+        from snkmt.types.enums import Status
 
         result = session.execute(
             select(

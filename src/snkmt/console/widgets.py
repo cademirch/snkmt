@@ -7,9 +7,9 @@ from textual.widgets import DataTable
 from datetime import datetime, timezone
 from rich.text import TextType, Text
 
-from snkmt.db.models.rule import Rule
-from snkmt.db.models.workflow import Workflow
-from snkmt.db.models.enums import Status
+from snkmt.core.models.rule import Rule
+from snkmt.core.models.workflow import Workflow
+from snkmt.types.enums import Status
 
 
 class StyledProgress(Text):

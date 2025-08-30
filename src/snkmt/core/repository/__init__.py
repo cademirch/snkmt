@@ -3,7 +3,7 @@ from re import U
 from typing import Optional, List
 from datetime import datetime
 from uuid import UUID
-from snkmt.persistence.dto import (
+from snkmt.types.dto import (
     CreateFileDTO,
     FileDTO,
     UpdateWorkflowDTO,
@@ -15,7 +15,7 @@ from snkmt.persistence.dto import (
     UpdateRuleDTO,
     UpdateJobDTO,
 )
-from snkmt.persistence.types import Status
+from snkmt.types.enums import Status
 
 
 class WorkflowRepository(ABC):

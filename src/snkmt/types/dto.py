@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from uuid import UUID
-from snkmt.db.models.enums import Status, FileType
+from snkmt.types.enums import Status, FileType
 
 
 @dataclass

@@ -54,7 +54,7 @@ format = "ruff format src"
 lint = "ruff check"
 type-check = "mypy src/"
 qc = { depends-on = ["format", "lint", ] }
-migrate = {cmd = "alembic revision --autogenerate -m", cwd="src/db"}
+migrate = {cmd = "alembic revision --autogenerate -m", cwd="src/snkmt/core/db"}
 
 [tool.pixi.feature.dev.tasks.test]
 cmd = [

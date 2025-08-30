@@ -1,7 +1,8 @@
 import pytest
 from pathlib import Path
-from snkmt.db.session import Database
-from snkmt.db.models.version import DBVersion
+from snkmt.core.db.session import Database
+from snkmt.core.models.version import DBVersion
+from snkmt.core.db.version import parse_db_version
 import tempfile
 
 
@@ -18,7 +19,7 @@ def test_new_database_sets_latest_version(temp_db_path):
     db = Database(db_path=str(temp_db_path), create_db=True)
 
     actual_version = db.get_version()
-    expected_version = DBVersion(id="a088a7b93fe5", major=1, minor=0)
+    expected_version = parse_db_version("latest")
 
     assert actual_version == expected_version
 

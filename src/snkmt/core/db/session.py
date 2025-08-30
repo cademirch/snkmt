@@ -7,15 +7,15 @@ from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import sessionmaker, Session
 from platformdirs import user_data_dir
 from loguru import logger
-from snkmt.db.models.version import (
+from snkmt.core.models.version import DBVersion
+from snkmt.core.db.version import (
     DB_VERSIONS,
     DB_MAX_VERSION,
     DB_MIN_VERSION,
-    DBVersion,
     DBVersionError,
     null_db_version,
 )
-from snkmt.db.models.base import Base
+from snkmt.core.models.base import Base
 from alembic.command import downgrade, upgrade
 from alembic.config import Config as AlembicConfig
 

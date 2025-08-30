@@ -3,11 +3,11 @@ from typing import TYPE_CHECKING
 from sqlalchemy import ForeignKey, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from snkmt.db.models.base import Base
-from snkmt.db.models.enums import FileType
+from snkmt.core.models.base import Base
+from snkmt.types.enums import FileType
 
 if TYPE_CHECKING:
-    from snkmt.db.models.job import Job
+    from snkmt.core.models.job import Job
 
 
 class File(Base):

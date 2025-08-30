@@ -1,5 +1,5 @@
-from snkmt.db.models.base import Base
-from snkmt.db.models.enums import Status
+from snkmt.core.models.base import Base
+from snkmt.types.enums import Status
 
 from sqlalchemy import JSON, Enum, select, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship, Session
@@ -8,9 +8,9 @@ from typing import Optional, Dict, Any, TYPE_CHECKING, List
 import uuid
 
 if TYPE_CHECKING:
-    from snkmt.db.models.rule import Rule
-    from snkmt.db.models.job import Job
-    from snkmt.db.models.error import Error
+    from snkmt.core.models.rule import Rule
+    from snkmt.core.models.job import Job
+    from snkmt.core.models.error import Error
 
 
 class Workflow(Base):
