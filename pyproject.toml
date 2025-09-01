@@ -86,4 +86,7 @@ include = ["src"]
 extraPaths = ["src"]
 typeCheckingMode = "basic"
 
+[dependency-groups]
+dev = ["pytest-asyncio>=1.1.0,<2", "greenlet>=3.2.4,<4"]
+
 

@@ -54,3 +54,6 @@ class DBVersion(Base):
             return f"{self.major}.?"
         else:
             return f"{self.major}.{self.minor}"
+
+    def __repr__(self) -> str:
+        return f"DBVersion(id={self.id},major={self.major},minor={self.minor})"

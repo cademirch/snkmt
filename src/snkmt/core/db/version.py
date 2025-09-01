@@ -12,8 +12,12 @@ DB_VERSIONS = [
     DBVersion(id="a088a7b93fe5", major=1, minor=0),
     DBVersion(id="c59016d243cc", major=1, minor=1),
 ]
-DB_MIN_VERSION = DBVersion(id="", major=1, minor=0)  # Min db version needed by snkmt.
-DB_MAX_VERSION = DBVersion(id="", major=1, minor=0)  # Max db version needed by snkmt.
+DB_MIN_VERSION = DBVersion(
+    id="a088a7b93fe5", major=1, minor=0
+)  # Min db version needed by snkmt.
+DB_MAX_VERSION = DBVersion(
+    id="c59016d243cc", major=1, minor=1
+)  # Max db version needed by snkmt.
 
 
 def parse_db_version(version_str: str) -> DBVersion:
