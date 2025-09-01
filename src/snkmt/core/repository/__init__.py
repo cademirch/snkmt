@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from re import U
 from typing import Optional, List
 from datetime import datetime
 from uuid import UUID
