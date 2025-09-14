@@ -2,24 +2,25 @@ import shutil
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional, Tuple
-from sqlalchemy import create_engine, inspect, select
+from typing import Optional
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from platformdirs import user_data_dir
 from loguru import logger
-from snkmt.core.models.version import DBVersion
 from snkmt.core.db.version import (
-    DB_VERSIONS,
-    DB_MAX_VERSION,
-    DB_MIN_VERSION,
-    DBVersionError,
-    null_db_version,
+    DatabaseVersionError,
+    get_latest_revision,
+    get_database_revision,
+    needs_migration,
+    is_database_newer_than_code,
+    is_legacy_database,
+    stamp_legacy_database,
 )
 from snkmt.core.models.base import Base
-from alembic.command import downgrade, upgrade
+from alembic.command import upgrade
 from alembic.config import Config as AlembicConfig
-
+from snkmt.core.repository.sql import SQLAlchemyWorkflowRepository
 
 SNKMT_DIR = Path(user_data_dir(appname="snkmt", appauthor=False, ensure_exists=True))
 
@@ -76,74 +77,76 @@ class Database:
         self.session = self.get_session()
         self.auto_migrate = auto_migrate
 
-        Base.metadata.create_all(bind=self.engine)
+        # Don't create tables here - let alembic handle it during migration
 
-        current_version = self.get_version()
-        latest_version = DB_MAX_VERSION
+        # Handle legacy databases first
+        if is_legacy_database(self.session):
+            logger.info(
+                "Legacy database detected - auto-stamping with appropriate revision"
+            )
+            stamped_revision = stamp_legacy_database(self.session, self.db_path)
+            logger.info(f"Legacy database stamped with revision: {stamped_revision}")
 
-        if current_version == null_db_version:
-            self.migrate(create_backup=False)
-        elif current_version < latest_version:
-            if auto_migrate:
-                self.migrate()
-            else:
-                if not ignore_version:
-                    raise DBVersionError(
-                        f"Database version {current_version} needs migration but auto_migrate is disabled Please use snkmt db migrate command."
-                    )
+        if auto_migrate and needs_migration(self.session):
+            current_revision = get_database_revision(self.session)
+            latest_revision = get_latest_revision()
+
+            if is_database_newer_than_code(self.session):
+                raise DatabaseVersionError(
+                    f"Database has unknown revision '{current_revision}'. "
+                    f"This database was likely created by a newer version of snkmt than this one (latest supported: {latest_revision}). "
+                    f"Please upgrade snkmt or use a database created with a compatible version."
+                )
+
+            logger.info(
+                f"Migrating database from {current_revision} to {latest_revision}"
+            )
+
+            # For new databases (no alembic_version), don't create backup
+            create_backup = current_revision is not None
+            self.migrate(create_backup=create_backup)
+        elif not auto_migrate and needs_migration(self.session):
+            if not ignore_version:
+                current_revision = get_database_revision(self.session)
+                latest_revision = get_latest_revision()
+                raise DatabaseVersionError(
+                    f"Database revision {current_revision} needs migration to {latest_revision} but auto_migrate is disabled. Please use snkmt db migrate command."
+                )
 
     def migrate(
         self,
-        desired_version: Optional[DBVersion] = None,
-        upgrade_only: bool = False,
+        desired_revision: Optional[str] = None,
         create_backup: bool = True,
     ) -> None:
         """
-        Migrate database to desired version.
+        Migrate database to desired revision.
 
         Parameters
         ----------
-        desired_version: Optional[DBVersionInfo]
-            Desired version to update redun database to. If null, update to latest version.
-        upgrade_only: bool
-            By default, this function will perform both upgrades and downgrades.
-            Set this to true to prevent downgrades (such as during automigration).
+        desired_revision: Optional[str]
+            Desired alembic revision to migrate to. If None, migrate to latest (head).
         create_backup: bool
             Create a timestamped backup of the database before migration.
         """
         assert self.engine
         assert self.session
 
-        # Determine target version
-        _, newest_allowed_version = DB_MIN_VERSION, DB_MAX_VERSION
-        if desired_version is None:
-            desired_version = newest_allowed_version
+        # Determine target revision
+        if desired_revision is None:
+            desired_revision = get_latest_revision()
 
-        # Check current version
-        current_version = self.get_version()
+        # Check current revision
+        current_revision = get_database_revision(self.session)
 
-        # Early exit if already at desired version
-        if current_version == desired_version:
+        # Early exit if already at desired revision
+        if current_revision == desired_revision:
             logger.info(
-                f"Already at desired db version {current_version}. No migrations performed."
+                f"Already at desired revision {current_revision}. No migrations performed."
             )
             return
 
-        # Validate version compatibility
-        if current_version > newest_allowed_version:
-            raise DBVersionError(
-                f"Database is too new for this program: {current_version} > {newest_allowed_version}"
-            )
-
-        # Handle downgrade restrictions
-        if current_version > desired_version and upgrade_only:
-            logger.info(
-                f"Already at db version {current_version}, upgrade_only is set."
-            )
-            return
-
-        # Create backup if needed
-        if create_backup and current_version != null_db_version:
+        # Create backup if needed (skip for new databases)
+        if create_backup and current_revision is not None:
             backup_path = self._create_backup()
             logger.info(f"Created database backup: {backup_path}")
 
@@ -154,9 +157,9 @@ class Database:
 
         config = AlembicConfig(alembic_config_file)
         config.set_main_option("script_location", str(alembic_script_location))
-        config.session = self.session  # type: ignore
+        config.set_main_option("sqlalchemy.url", f"sqlite:///{self.db_path}")
 
-        # Log migration files for debugging
+        # Log migration details for debugging
         versions_dir = alembic_script_location / "versions"
         logger.info(f"Using alembic config file: {alembic_config_file}")
         logger.info(f"Looking for migration files in: {versions_dir}")
@@ -164,61 +167,23 @@ class Database:
 
         # Perform the migration
         try:
-            if desired_version > current_version:
-                # Upgrade
-                logger.info(
-                    f"Upgrading db from version {current_version} to {desired_version}..."
-                )
-                upgrade(config, desired_version.id)
-                logger.info("Upgrade complete.")
-            else:
-                # Downgrade
-                logger.info(
-                    f"Downgrading db from version {current_version} to {desired_version}..."
-                )
-                downgrade(config, desired_version.id)
-                logger.info("Downgrade complete.")
+            logger.info(
+                f"Migrating db from revision {current_revision} to {desired_revision}..."
+            )
+            upgrade(config, desired_revision)  # type: ignore
+            logger.info("Migration complete.")
 
         except Exception as e:
             logger.error(f"Migration failed: {e}")
-            # Re-raise the exception without modifying the version record
-            raise
-
-        # Only update version record after successful migration
-        try:
-            # Remove old version record(s)
-            self.session.query(DBVersion).delete()
-
-            # Add new version record
-            self.session.add(
-                DBVersion(
-                    id=desired_version.id,
-                    major=desired_version.major,
-                    minor=desired_version.minor,
-                )
-            )
-
-            # Commit the version update
-            self.session.commit()
-            logger.info(f"Database version updated to {desired_version}")
-
-        except Exception as e:
-            # If version update fails, rollback and provide context
-            self.session.rollback()
-            logger.error(f"Failed to update version record after migration: {e}")
-            raise DBVersionError(
-                f"Migration succeeded but failed to update version record. "
-                f"Database schema is at {desired_version} but version record may show {current_version}. "
-                f"Error: {e}"
-            )
+            raise DatabaseVersionError(f"Migration failed: {e}") from e
 
     def _create_backup(self) -> str:
         """Create a timestamped backup of the database file."""
         db_path = Path(self.db_path)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        current_version_id = self.get_version().id
+        current_revision = get_database_revision(self.session) or "new"
         backup_name = (
-            f"{db_path.stem}_backup_{timestamp}_{current_version_id}_{db_path.suffix}"
+            f"{db_path.stem}_backup_{timestamp}_{current_revision}{db_path.suffix}"
         )
         backup_path = db_path.parent / backup_name
 
@@ -233,20 +198,9 @@ class Database:
 
         return str(backup_path)
 
-    def get_version(self) -> DBVersion:
-        """Get the current database version."""
-        assert self.session
-        inspector = inspect(self.engine)
-        table_names = inspector.get_table_names()
-
-        if DBVersion.__tablename__ in table_names:
-            version_row = (
-                self.session.query(DBVersion).order_by(DBVersion.major.desc()).first()
-            )
-            if version_row:
-                return version_row
-
-        return null_db_version
+    def get_revision(self) -> Optional[str]:
+        """Get the current database revision."""
+        return get_database_revision(self.session)
 
     def get_session(self) -> Session:
         """New SQLAlchemy session."""
@@ -259,7 +213,7 @@ class Database:
             "db_path": self.db_path,
             "tables": inspector.get_table_names(),
             "engine": str(self.engine.url),
-            "schema_revision": self.get_version().id,
+            "schema_revision": self.get_revision(),
         }
 
     def close(self):
@@ -271,7 +225,7 @@ class Database:
 
 
 class AsyncDatabase:
-    """Async connector for the Snakemake SQLite DB."""
+    """Async connector for the Snakemake SQLite DB using composition with sync Database."""
 
     def __init__(
         self,
@@ -279,26 +233,17 @@ class AsyncDatabase:
         create_db: bool = True,
         ignore_version: bool = False,
     ):
-        default_db_path = SNKMT_DIR / "snkmt.db"
+        # Use sync Database for all initialization and migration
+        self._sync_db = Database(
+            db_path=db_path,
+            create_db=create_db,
+            auto_migrate=True,  # Let sync db handle auto-migration
+            ignore_version=ignore_version,
+        )
 
-        if db_path:
-            db_file = Path(db_path)
-        else:
-            db_file = default_db_path
-
-        if not db_file.parent.exists():
-            if create_db:
-                db_file.parent.mkdir(parents=True, exist_ok=True)
-            else:
-                raise DatabaseNotFoundError(f"No DB directory: {db_file.parent}")
-
-        if not db_file.exists() and not create_db:
-            raise DatabaseNotFoundError(f"DB file not found: {db_file}")
-
-        self.db_path = str(db_file)
-
+        # Create async engine pointing to the same database file
         self.engine = create_async_engine(
-            f"sqlite+aiosqlite:///{self.db_path}",
+            f"sqlite+aiosqlite:///{self._sync_db.db_path}",
             echo=False,
             pool_size=10,
             max_overflow=20,
@@ -309,96 +254,36 @@ class AsyncDatabase:
             autocommit=False, autoflush=True, bind=self.engine, class_=AsyncSession
         )
 
-        self.ignore_version = ignore_version
+    # Delegate all sync operations to the sync database
+    def migrate(self, **kwargs):
+        """Migrate database to desired revision."""
+        return self._sync_db.migrate(**kwargs)
 
-    async def initialize(self):
-        """Async initialization - must be called after __init__."""
-        # Create tables
-        async with self.engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+    def get_revision(self) -> Optional[str]:
+        """Get the current database revision."""
+        return self._sync_db.get_revision()
 
-        current_version = await self.get_version()
-        latest_version = self.get_all_versions()[-1]
+    @property
+    def db_path(self) -> str:
+        """Get database path."""
+        return self._sync_db.db_path
 
-        if current_version == null_db_version:
-            # For new databases, run sync migration
-            await self._run_sync_migration(create_backup=False)
-        elif current_version < latest_version:
-            raise DBVersionError(
-                f"Current DB version: {current_version} is incompatible with latest: {latest_version}."
-                "Auto-migration not supported in async. "
-                "Please use snkmt db migrate command."
-            )
+    def get_db_info(self) -> dict:
+        """Path, tables, and engine URL (with async engine info)."""
+        info = self._sync_db.get_db_info()
+        # Update engine info to show async engine
+        info["engine"] = str(self.engine.url)
+        return info
 
-    async def _run_sync_migration(self, create_backup: bool = True):
-        """Run synchronous migration in async context."""
-
-        sync_db = Database(
-            db_path=self.db_path,
-            create_db=False,
-            auto_migrate=False,
-            ignore_version=True,
-        )
-        try:
-            sync_db.migrate(create_backup=create_backup)
-        finally:
-            sync_db.close()
-
-    async def get_version(self) -> DBVersion:
-        """Get the current database version."""
-        async with self.engine.begin() as conn:
-
-            def check_tables(connection):
-                inspector = inspect(connection)
-                return DBVersion.__tablename__ in inspector.get_table_names()
-
-            has_table = await conn.run_sync(check_tables)
-
-        if not has_table:
-            return null_db_version
-
-        async with self.SessionLocal() as session:
-            result = await session.execute(
-                select(DBVersion).order_by(DBVersion.major.desc())
-            )
-            version_row = result.scalar_one_or_none()
-            if version_row:
-                return version_row
-
-        return null_db_version
-
-    @staticmethod
-    def get_all_versions() -> List[DBVersion]:
-        return DB_VERSIONS
-
-    @staticmethod
-    def get_db_version_required() -> Tuple[DBVersion, DBVersion]:
-        """Returns the DB version range required by this library."""
-        return DB_MIN_VERSION, DB_MAX_VERSION
-
+    # Async-specific methods
     def get_session(self) -> async_sessionmaker[AsyncSession]:
         """Return async session factory."""
         return self.SessionLocal
 
-    async def get_db_info(self) -> dict:
-        """Path, tables, and engine URL."""
-        async with self.engine.begin() as conn:
-
-            def get_info(connection):
-                inspector = inspect(connection)
-                return inspector.get_table_names()
-
-            tables = await conn.run_sync(get_info)
-
-        current_version = await self.get_version()
-
-        return {
-            "db_path": self.db_path,
-            "tables": tables,
-            "engine": str(self.engine.url),
-            "schema_revision": current_version.id,
-        }
+    def get_workflow_repository(self) -> SQLAlchemyWorkflowRepository:
+        return SQLAlchemyWorkflowRepository(self.get_session())
 
     async def close(self):
-        """Close the async engine."""
+        """Close both async and sync engines."""
         await self.engine.dispose()
+        self._sync_db.close()
