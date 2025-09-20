@@ -1,6 +1,6 @@
 [project]
 name = "snkmt"
-version = "0.2.0"
+version = "0.2.1"
 description = "Realtime monitoring of Snakemake workflows"
 readme = "README.md"
 authors = [{ name = "Cade Mirchandani", email = "cmirchan@ucsc.edu" }]
