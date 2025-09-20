@@ -1,5 +1,7 @@
+import os
 import shutil
 import sys
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -16,8 +18,7 @@ from snkmt.core.db.version import (
     is_legacy_database,
     stamp_legacy_database,
 )
-from alembic.command import upgrade
-from alembic.config import Config as AlembicConfig
+import subprocess
 from snkmt.core.repository.sql import SQLAlchemyWorkflowRepository
 from snkmt.core.db import SNKMT_DIR
 
@@ -45,10 +46,9 @@ class Database:
         default_db_path = SNKMT_DIR / "snkmt.db"
 
         if db_path:
-            db_file = Path(db_path)
-
+            db_file = Path(db_path).resolve()
         else:
-            db_file = default_db_path
+            db_file = default_db_path.resolve()
 
         if not db_file.parent.exists():
             if create_db:
@@ -59,7 +59,7 @@ class Database:
         if not db_file.exists() and not create_db:
             raise DatabaseNotFoundError(f"DB file not found: {db_file}")
 
-        self.db_path = str(db_file)
+        self.db_path = str(db_file)  # Always absolute path
         self.db_file = db_file  # Keep Path object for config registration
 
         # Register database in config
@@ -151,14 +151,10 @@ class Database:
             backup_path = self._create_backup()
             logger.info(f"Created database backup: {backup_path}")
 
-        # Set up Alembic configuration
+        # Set up paths for alembic command
         db_dir = Path(__file__).parent
         alembic_config_file = db_dir / "alembic.ini"
         alembic_script_location = db_dir / "alembic"
-
-        config = AlembicConfig(alembic_config_file)
-        config.set_main_option("script_location", str(alembic_script_location))
-        config.set_main_option("sqlalchemy.url", f"sqlite:///{self.db_path}")
 
         # Log migration details for debugging
         versions_dir = alembic_script_location / "versions"
@@ -166,16 +162,66 @@ class Database:
         logger.info(f"Looking for migration files in: {versions_dir}")
         logger.info(f"Migration files found: {list(versions_dir.glob('*.py'))}")
 
+        # Create temporary config file with correct database URL
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".ini", delete=False
+        ) as temp_config:
+            # Read original config and modify the database URL
+            with open(alembic_config_file, "r") as original_config:
+                config_content = original_config.read()
+
+            # Replace the sqlalchemy.url line
+            lines = config_content.split("\n")
+            for i, line in enumerate(lines):
+                if line.startswith("sqlalchemy.url"):
+                    lines[i] = f"sqlalchemy.url = sqlite:///{self.db_path}"
+                    break
+
+            temp_config.write("\n".join(lines))
+            temp_config_path = temp_config.name
+
         try:
             logger.info(
-                f"Migrating db from revision {current_revision} to {desired_revision}..."
+                f"Migrating db {self.db_path} from revision {current_revision} to {desired_revision}..."
             )
-            upgrade(config, desired_revision)  # type: ignore
-            logger.info("Migration complete.")
 
+            # Run alembic upgrade using subprocess to avoid logging configuration conflicts
+
+            cmd = [
+                sys.executable,
+                "-m",
+                "alembic",
+                "-c",
+                temp_config_path,
+                "--raiseerr",
+                "upgrade",
+                desired_revision,
+            ]
+            logger.debug(f"Migration cmd: {cmd}")
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, cwd=str(db_dir), check=True
+            )
+
+            logger.info("Migration complete.")
+            logger.debug(f"Migration stderr: {result.stderr}")
+            logger.debug(f"Migration stdout: {result.stdout}")
+
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Migration failed with exit code {e.returncode}")
+            logger.error(f"Stdout: {e.stdout}")
+            logger.error(f"Stderr: {e.stderr}")
+            raise DatabaseVersionError(
+                f"Migration failed: {e.stderr or e.stdout}"
+            ) from e
         except Exception as e:
             logger.error(f"Migration failed: {e}")
             raise DatabaseVersionError(f"Migration failed: {e}") from e
+        finally:
+            # Clean up temporary config file
+            try:
+                os.unlink(temp_config_path)
+            except OSError:
+                pass
 
     def _register_database(self):
         """Register this database in the configuration."""

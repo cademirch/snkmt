@@ -1,5 +1,5 @@
 from logging.config import fileConfig
-import logging
+
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
@@ -10,10 +10,9 @@ from alembic import context
 # access to the values within the .ini file in use.
 config = context.config
 
-# Preserve existing logging configuration to avoid disrupting Snakemake logger handlers
-# Only configure Alembic logging if no handlers are already configured
+
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name, disable_existing_loggers=False)
+    fileConfig(config.config_file_name)
 
 # add your model's MetaData object here
 # for 'autogenerate' support

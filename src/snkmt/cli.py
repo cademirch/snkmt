@@ -71,9 +71,9 @@ def db_stamp(
     ),
 ):
     """Stamp database with a specific revision without running migrations."""
+    import subprocess
+    import sys
     from pathlib import Path
-    from alembic.command import stamp
-    from alembic.config import Config
     from platformdirs import user_data_dir
     from snkmt.core.db.version import get_latest_revision
 
@@ -95,21 +95,59 @@ def db_stamp(
             raise typer.Exit(1)
         typer.echo(f"Using latest revision: {revision}")
 
-    # Setup Alembic config
+    # Setup paths for alembic command
     db_dir = Path(__file__).parent / "core/db"
     alembic_config_file = db_dir / "alembic.ini"
-    alembic_script_location = db_dir / "alembic"
 
-    config = Config(str(alembic_config_file))
-    config.set_main_option("script_location", str(alembic_script_location))
-    config.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    # Create temporary config file with correct database URL
+    import tempfile
+    
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.ini', delete=False) as temp_config:
+        # Read original config and modify the database URL
+        with open(alembic_config_file, 'r') as original_config:
+            config_content = original_config.read()
+        
+        # Replace the sqlalchemy.url line
+        lines = config_content.split('\n')
+        for i, line in enumerate(lines):
+            if line.startswith('sqlalchemy.url'):
+                lines[i] = f"sqlalchemy.url = sqlite:///{db_path}"
+                break
+        
+        temp_config.write('\n'.join(lines))
+        temp_config_path = temp_config.name
 
     try:
-        stamp(config, revision)
+        # Run alembic stamp using subprocess to avoid logging configuration conflicts
+        cmd = [
+            sys.executable, "-m", "alembic",
+            "-c", temp_config_path,
+            "--raiseerr",
+            "stamp", revision
+        ]
+        
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            cwd=str(db_dir),
+            check=True
+        )
+        
         typer.echo(f"Database stamped with revision: {revision}")
+    except subprocess.CalledProcessError as e:
+        typer.echo(f"Error stamping database (exit code {e.returncode}): {e.stderr or e.stdout}", err=True)
+        raise typer.Exit(1)
     except Exception as e:
         typer.echo(f"Error stamping database: {e}", err=True)
         raise typer.Exit(1)
+    finally:
+        # Clean up temporary config file
+        try:
+            import os
+            os.unlink(temp_config_path)
+        except OSError:
+            pass
 
 
 #### CONFIG APP COMMANDS

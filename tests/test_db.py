@@ -43,6 +43,38 @@ def test_new_database_sets_latest_revision(temp_db_path):
     assert actual_revision == expected_revision
 
 
+def test_new_database_creates_expected_tables(temp_db_path):
+    """Test that a new database creates all expected tables."""
+    db = Database(db_path=str(temp_db_path), create_db=True)
+    
+    # Get table info from the database
+    db_info = db.get_db_info()
+    tables = db_info["tables"]
+    
+    # Expected tables based on our models + alembic version table
+    expected_tables = {
+        "workflows",
+        "rules", 
+        "jobs",
+        "files",
+        "errors",
+        "alembic_version"  # Alembic creates this table for version tracking
+    }
+    
+    # Convert to set for easier comparison
+    actual_tables = set(tables)
+    
+    # Check that all expected tables exist
+    assert expected_tables.issubset(actual_tables), f"Missing tables: {expected_tables - actual_tables}"
+    
+    # Check that we don't have unexpected tables (allow extra tables but log them)
+    extra_tables = actual_tables - expected_tables
+    if extra_tables:
+        print(f"Found extra tables (this might be okay): {extra_tables}")
+    
+    db.close()
+
+
 @pytest.mark.asyncio
 async def test_async_new_database_sets_latest_revision(temp_db_path):
     """Test that a new async database is set to the latest revision."""
