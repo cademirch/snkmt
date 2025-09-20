@@ -1,11 +1,21 @@
+from re import S
 import pytest
 
 from pathlib import Path
+
 from snkmt.core.db.session import Database, AsyncDatabase
-from snkmt.core.models.version import DBVersion
-from snkmt.core.db.version import parse_db_version, DB_VERSIONS
+from snkmt.core.db.version import (
+    get_database_revision,
+    get_latest_revision,
+    get_legacy_database_revision,
+    is_legacy_database,
+    stamp_legacy_database,
+)
 import tempfile
 import sys
+
+from pytest_loguru.plugin import caplog
+
 
 @pytest.fixture
 def temp_db_path():
@@ -13,34 +23,35 @@ def temp_db_path():
     with tempfile.TemporaryDirectory() as temp_dir:
         yield Path(temp_dir) / "test.db"
 
+
 @pytest.fixture
 async def async_db(temp_db_path):
-    """Create and initialize an async database."""
+    """Create an async database."""
     db = AsyncDatabase(db_path=str(temp_db_path), create_db=True)
-    await db.initialize()
     yield db
     await db.close()
 
-def test_new_database_sets_latest_version(temp_db_path):
-    """Test that a new database is set to the latest version."""
+
+def test_new_database_sets_latest_revision(temp_db_path):
+    """Test that a new database is set to the latest revision."""
 
     db = Database(db_path=str(temp_db_path), create_db=True)
 
-    actual_version = db.get_version()
-    expected_version = parse_db_version("latest")
+    actual_revision = db.get_revision()
+    expected_revision = get_latest_revision()
 
-    assert actual_version == expected_version
+    assert actual_revision == expected_revision
+
 
 @pytest.mark.asyncio
-async def test_async_new_database_sets_latest_version(temp_db_path):
-    """Test that a new async database is set to the latest version."""
+async def test_async_new_database_sets_latest_revision(temp_db_path):
+    """Test that a new async database is set to the latest revision."""
     db = AsyncDatabase(db_path=str(temp_db_path), create_db=True)
-    await db.initialize()
 
-    actual_version = await db.get_version()
-    expected_version = parse_db_version("latest")
+    actual_revision = db.get_revision()  # Now sync method
+    expected_revision = get_latest_revision()
 
-    assert actual_version == expected_version
+    assert actual_revision == expected_revision
     await db.close()
 
 
@@ -50,7 +61,6 @@ async def test_async_database_creates_file(temp_db_path):
     assert not temp_db_path.exists()
 
     db = AsyncDatabase(db_path=str(temp_db_path), create_db=True)
-    await db.initialize()
 
     assert temp_db_path.exists()
     await db.close()
@@ -69,145 +79,76 @@ async def test_async_database_raises_when_not_found():
 
 
 @pytest.mark.asyncio
-async def test_async_database_raises_on_outdated_version(temp_db_path):
-    """Test that AsyncDatabase raises DBVersionError when database version is outdated."""
-    from snkmt.core.db.version import DBVersionError, DB_VERSIONS
+async def test_async_database_auto_migrates_outdated_revision(temp_db_path):
+    """Test that AsyncDatabase auto-migrates when database revision is outdated."""
+    from alembic.command import upgrade, downgrade
+    from alembic.config import Config as AlembicConfig
+    from pathlib import Path
 
-    # First, create a database with an old version
+    # First, create a database at latest revision
     db_sync = Database(
         db_path=str(temp_db_path),
         create_db=True,
-        auto_migrate=False,
-        ignore_version=True,
+        auto_migrate=True,
     )
+    db_sync.close()
 
-    # Manually set an old version
-    old_version = DB_VERSIONS[0]  # Get the first (oldest) version
-    latest_version = DB_VERSIONS[-1]
+    # Set up Alembic and downgrade to old revision
+    db_dir = Path(__file__).parent.parent / "src" / "snkmt" / "core" / "db"
+    config = AlembicConfig(db_dir / "alembic.ini")
+    config.set_main_option("script_location", str(db_dir / "alembic"))
+    config.set_main_option("sqlalchemy.url", f"sqlite:///{temp_db_path}")
 
-    # Clear any existing version and set to old version
-    db_sync.session.query(DBVersion).delete()
-    db_sync.session.add(
-        DBVersion(
-            id=old_version.id,
-            major=old_version.major,
-            minor=old_version.minor,
-        )
-    )
-    db_sync.session.commit()
-    db_sync.session.close()
+    # Downgrade to old revision
+    old_revision = "a088a7b93fe5"  # First revision from our migration history
+    downgrade(config, old_revision)
 
-    # Now try to open with AsyncDatabase - should raise DBVersionError
+    # Now create AsyncDatabase - it should auto-migrate via sync database
     db_async = AsyncDatabase(db_path=str(temp_db_path), create_db=False)
 
-    with pytest.raises(DBVersionError) as exc_info:
-        await db_async.initialize()
-
-    error_msg = str(exc_info.value)
-    assert str(old_version) in error_msg
-    assert str(latest_version) in error_msg
-    assert "Auto-migration not supported in async" in error_msg
-    assert "snkmt db migrate" in error_msg
+    # Should be at latest revision after auto-migration
+    latest_revision = get_latest_revision()
+    assert db_async.get_revision() == latest_revision
 
     await db_async.close()
 
 
-@pytest.mark.asyncio
-async def test_db_migrate_command(temp_db_path):
-    """Test that the db migrate command upgrades database version."""
-    from typer.testing import CliRunner
-    from snkmt import app
-    from snkmt.core.db.version import DB_VERSIONS
+def test_database_revision_functions():
+    """Test the new revision-based functions."""
+    from snkmt.core.db.version import get_latest_revision
 
-    runner = CliRunner()
+    # Test that we can get the latest revision
+    latest = get_latest_revision()
+    assert latest is not None
+    assert isinstance(latest, str)
+    assert len(latest) == 12  # Alembic revision IDs are 12 characters
 
-    # Create database with old version
-    old_version = DB_VERSIONS[0]
-    latest_version = DB_VERSIONS[-1]
-    print(f"{old_version=} {latest_version=}")
-    db = Database(
-        db_path=str(temp_db_path),
-        create_db=True,
-        auto_migrate=False,
-        ignore_version=True,
-    )
 
-    # Clear any version and set to old
-    db.session.query(DBVersion).delete()
-    db.session.add(
-        DBVersion(
-            id=old_version.id,
-            major=old_version.major,
-            minor=old_version.minor,
+def test_legacy_database(temp_db_path, caplog):
+    """
+    this was the only database revision that made it to releases 0.1.0 to 0.1.2
+    """
+
+    import logging
+    import shutil
+
+    legacy_db = Path("tests/fixtures/legacy.db")
+    test_db = Path(temp_db_path)
+    shutil.copy(legacy_db, test_db)
+
+    with caplog.at_level(logging.INFO):
+        db = Database(
+            db_path=str(temp_db_path),
+            create_db=False,
+            auto_migrate=True,
+            ignore_version=False,
         )
-    )
-    db.session.commit()
 
-    # Verify it's at old version
-    assert db.get_version() == old_version
-    db.session.close()
+        desired_rev = "a088a7b93fe5"
 
-    # Run migrate command
-    result = runner.invoke(app, ["db", "migrate", str(temp_db_path)])
-    if result.exit_code != 0:
-        print(f"Exception: {result.exception}")
-        print(result.output)
+        assert (
+            "Legacy database detected - auto-stamping with appropriate revision"
+            in caplog.text
+        )
 
-    assert result.exit_code == 0
-
-    # Verify database is now at latest version
-    db_after = Database(
-        db_path=str(temp_db_path),
-        create_db=False,
-        auto_migrate=False,
-        ignore_version=True,
-    )
-    current_version = db_after.get_version()
-    assert current_version == latest_version
-    db_after.session.close()
-
-
-def test_db_model():
-    """Test DBVersion model comparison operators and string representation."""
-    v1_0 = DBVersion(id="test1", major=1, minor=0)
-    v1_1 = DBVersion(id="test2", major=1, minor=1)
-    v2_0 = DBVersion(id="test3", major=2, minor=0)
-    v1_0_duplicate = DBVersion(id="test4", major=1, minor=0)
-    v_unknown = DBVersion(id="test5", major=1, minor=99)  # DB_UNKNOWN_VERSION
-
-    # Test equality
-    assert v1_0 == v1_0_duplicate
-    assert not (v1_0 == v1_1)
-
-    # Test less than
-    assert v1_0 < v1_1
-    assert v1_1 < v2_0
-    assert not (v1_1 < v1_0)
-
-    # Test less than or equal
-    assert v1_0 <= v1_0_duplicate
-    assert v1_0 <= v1_1
-    assert not (v1_1 <= v1_0)
-
-    # Test greater than
-    assert v1_1 > v1_0
-    assert v2_0 > v1_1
-    assert not (v1_0 > v1_1)
-
-    # Test greater than or equal
-    assert v1_0 >= v1_0_duplicate
-    assert v1_1 >= v1_0
-    assert not (v1_0 >= v1_1)
-
-    # Test string representation
-    assert str(v1_0) == "1.0"
-    assert str(v1_1) == "1.1"
-    assert str(v2_0) == "2.0"
-    assert str(v_unknown) == "1.?"
-
-    # Test TypeError for invalid comparisons
-    with pytest.raises(TypeError):
-        v1_0 < "not_a_version"
-
-    with pytest.raises(TypeError):
-        v1_0 == "not_a_version"
+        assert f"Legacy database stamped with revision: {desired_rev}" in caplog.text
