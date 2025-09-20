@@ -101,42 +101,47 @@ def db_stamp(
 
     # Create temporary config file with correct database URL
     import tempfile
-    
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.ini', delete=False) as temp_config:
+
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".ini", delete=False
+    ) as temp_config:
         # Read original config and modify the database URL
-        with open(alembic_config_file, 'r') as original_config:
+        with open(alembic_config_file, "r") as original_config:
             config_content = original_config.read()
-        
+
         # Replace the sqlalchemy.url line
-        lines = config_content.split('\n')
+        lines = config_content.split("\n")
         for i, line in enumerate(lines):
-            if line.startswith('sqlalchemy.url'):
+            if line.startswith("sqlalchemy.url"):
                 lines[i] = f"sqlalchemy.url = sqlite:///{db_path}"
                 break
-        
-        temp_config.write('\n'.join(lines))
+
+        temp_config.write("\n".join(lines))
         temp_config_path = temp_config.name
 
     try:
         # Run alembic stamp using subprocess to avoid logging configuration conflicts
         cmd = [
-            sys.executable, "-m", "alembic",
-            "-c", temp_config_path,
+            sys.executable,
+            "-m",
+            "alembic",
+            "-c",
+            temp_config_path,
             "--raiseerr",
-            "stamp", revision
+            "stamp",
+            revision,
         ]
-        
+
         result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            cwd=str(db_dir),
-            check=True
+            cmd, capture_output=True, text=True, cwd=str(db_dir), check=True
         )
-        
+
         typer.echo(f"Database stamped with revision: {revision}")
     except subprocess.CalledProcessError as e:
-        typer.echo(f"Error stamping database (exit code {e.returncode}): {e.stderr or e.stdout}", err=True)
+        typer.echo(
+            f"Error stamping database (exit code {e.returncode}): {e.stderr or e.stdout}",
+            err=True,
+        )
         raise typer.Exit(1)
     except Exception as e:
         typer.echo(f"Error stamping database: {e}", err=True)
@@ -145,6 +150,7 @@ def db_stamp(
         # Clean up temporary config file
         try:
             import os
+
             os.unlink(temp_config_path)
         except OSError:
             pass
