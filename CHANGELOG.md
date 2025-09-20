@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/cademirch/snkmt/compare/v0.1.2...v0.2.0) (2025-09-20)
+
+
+### Features
+
+* refactoring; workflow filtering; support multiple databases ([#15](https://github.com/cademirch/snkmt/issues/15)) ([72f3528](https://github.com/cademirch/snkmt/commit/72f35285995cf8ab1c23f59aca8821f7de5e42fe))
+
 ## [0.1.2](https://github.com/cademirch/snkmt/compare/v0.1.1...v0.1.2) (2025-08-30)
 
 
