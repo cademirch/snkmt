@@ -1,11 +1,12 @@
 from sqlalchemy.ext.asyncio import async_sessionmaker
-from sqlalchemy import select, and_
-from typing import Optional, List
-from datetime import datetime
+from sqlalchemy import select, and_, func
+from sqlalchemy.orm import selectinload
+from typing import Optional, List, Union
+from datetime import datetime, timezone, timedelta
 from uuid import UUID
 
 from snkmt.core.models import Workflow, Rule, Job, File
-from snkmt.types.enums import Status
+from snkmt.types.enums import Status, DateFilter
 from snkmt.core.repository import WorkflowRepository
 from snkmt.types.dto import (
     WorkflowDTO,
@@ -83,12 +84,28 @@ class SQLAlchemyWorkflowRepository(WorkflowRepository):
         order_by: str = "started_at",
         descending: bool = True,
         since: Optional[datetime] = None,
+        name: Optional[str] = None,
+        status: Optional[Union[str, Status]] = None,
+        started_at: Optional[DateFilter] = None,
     ) -> List[WorkflowDTO]:
         async with self.async_session() as session:
             stmt = select(Workflow)
 
             if since:
                 stmt = stmt.where(Workflow.updated_at >= since)
+
+            if name:
+                stmt = stmt.where(Workflow.snakefile.ilike(f"%{name}%"))
+
+            if status and status != "all":
+                if isinstance(status, str):
+                    status = Status(status.upper())
+                stmt = stmt.where(Workflow.status == status)
+
+            if started_at and started_at != DateFilter.ANY:
+                date_condition = self._get_date_condition(started_at)
+                if date_condition is not None:
+                    stmt = stmt.where(date_condition)
 
             order_column = getattr(Workflow, order_by, Workflow.started_at)
             stmt = stmt.order_by(order_column.desc() if descending else order_column)
@@ -101,6 +118,75 @@ class SQLAlchemyWorkflowRepository(WorkflowRepository):
             result = await session.execute(stmt)
             workflows = result.scalars().all()
             return [self._workflow_to_dto(w) for w in workflows]
+
+    async def count(
+        self,
+        name: Optional[str] = None,
+        status: Optional[Union[str, Status]] = None,
+        started_at: Optional[DateFilter] = None,
+    ) -> int:
+        async with self.async_session() as session:
+            stmt = select(func.count(Workflow.id))
+
+            if name:
+                stmt = stmt.where(Workflow.snakefile.ilike(f"%{name}%"))
+
+            if status and status != "all":
+                if isinstance(status, str):
+                    status = Status(status.upper())
+                stmt = stmt.where(Workflow.status == status)
+
+            if started_at and started_at != DateFilter.ANY:
+                date_condition = self._get_date_condition(started_at)
+                if date_condition is not None:
+                    stmt = stmt.where(date_condition)
+
+            result = await session.execute(stmt)
+            return result.scalar() or 0
+
+    def _get_date_condition(self, date_filter: DateFilter):
+        """Convert DateFilter to SQLAlchemy condition."""
+        now = datetime.now(timezone.utc)
+        now_date = now.date()
+
+        match date_filter:
+            case DateFilter.TODAY:
+                start_of_day = datetime.combine(now_date, datetime.min.time()).replace(
+                    tzinfo=timezone.utc
+                )
+                end_of_day = datetime.combine(now_date, datetime.max.time()).replace(
+                    tzinfo=timezone.utc
+                )
+                return and_(
+                    Workflow.started_at >= start_of_day,
+                    Workflow.started_at <= end_of_day,
+                )
+            case DateFilter.YESTERDAY:
+                yesterday = now_date - timedelta(days=1)
+                start_of_day = datetime.combine(yesterday, datetime.min.time()).replace(
+                    tzinfo=timezone.utc
+                )
+                end_of_day = datetime.combine(yesterday, datetime.max.time()).replace(
+                    tzinfo=timezone.utc
+                )
+                return and_(
+                    Workflow.started_at >= start_of_day,
+                    Workflow.started_at <= end_of_day,
+                )
+            case DateFilter.LAST_7_DAYS:
+                seven_days_ago = now - timedelta(days=7)
+                return Workflow.started_at >= seven_days_ago
+            case DateFilter.LAST_30_DAYS:
+                thirty_days_ago = now - timedelta(days=30)
+                return Workflow.started_at >= thirty_days_ago
+            case DateFilter.LAST_90_DAYS:
+                ninety_days_ago = now - timedelta(days=90)
+                return Workflow.started_at >= ninety_days_ago
+            case DateFilter.THIS_YEAR:
+                start_of_year = datetime(now_date.year, 1, 1, tzinfo=timezone.utc)
+                return Workflow.started_at >= start_of_year
+            case _:
+                return None
 
     async def list_rules(
         self,
@@ -315,7 +401,58 @@ class SQLAlchemyWorkflowRepository(WorkflowRepository):
             priority=job.priority,
             end_time=job.end_time,
             group_id=job.group_id,
+            files=[self._file_to_dto(f) for f in job.files],
         )
+
+    async def list_jobs(
+        self,
+        workflow_id: UUID,
+        status: Optional[Status] = None,
+        rule_id: Optional[int] = None,
+        since: Optional[datetime] = None,
+        limit: Optional[int] = None,
+        offset: int = 0,
+        order_by: str = "end_time",
+        descending: bool = True,
+    ) -> List[JobDTO]:
+        async with self.async_session() as session:
+            stmt = (
+                select(Job)
+                .options(selectinload(Job.rule))
+                .options(selectinload(Job.files))
+                .where(Job.workflow_id == workflow_id)
+            )
+
+            if status:
+                stmt = stmt.where(Job.status == status)
+
+            if rule_id:
+                stmt = stmt.where(Job.rule_id == rule_id)
+
+            if since:
+                stmt = stmt.where(Job.end_time >= since)
+
+            order_column = getattr(Job, order_by, Job.end_time)
+            stmt = stmt.order_by(order_column.desc() if descending else order_column)
+
+            if limit:
+                stmt = stmt.limit(limit)
+            if offset:
+                stmt = stmt.offset(offset)
+
+            result = await session.execute(stmt)
+            jobs = result.scalars().all()
+
+            # Convert to DTOs with rule names
+            job_dtos = []
+            for job in jobs:
+                # Now job.rule is properly loaded
+                rule_name = job.rule.name if job.rule else None
+                job_dto = self._job_to_dto(job)
+                job_dto.rule_name = rule_name
+                job_dtos.append(job_dto)
+
+            return job_dtos
 
     def _file_to_dto(self, file: File) -> FileDTO:
         return FileDTO(

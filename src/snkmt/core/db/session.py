@@ -3,10 +3,9 @@ import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
-from sqlalchemy import create_engine, inspect, text
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from platformdirs import user_data_dir
 from loguru import logger
 from snkmt.core.db.version import (
     DatabaseVersionError,
@@ -17,12 +16,10 @@ from snkmt.core.db.version import (
     is_legacy_database,
     stamp_legacy_database,
 )
-from snkmt.core.models.base import Base
 from alembic.command import upgrade
 from alembic.config import Config as AlembicConfig
 from snkmt.core.repository.sql import SQLAlchemyWorkflowRepository
-
-SNKMT_DIR = Path(user_data_dir(appname="snkmt", appauthor=False, ensure_exists=True))
+from snkmt.core.db import SNKMT_DIR
 
 
 logger.remove()
@@ -63,6 +60,10 @@ class Database:
             raise DatabaseNotFoundError(f"DB file not found: {db_file}")
 
         self.db_path = str(db_file)
+        self.db_file = db_file  # Keep Path object for config registration
+
+        # Register database in config
+        self._register_database()
         self.engine = create_engine(
             f"sqlite:///{self.db_path}",
             echo=False,
@@ -165,7 +166,6 @@ class Database:
         logger.info(f"Looking for migration files in: {versions_dir}")
         logger.info(f"Migration files found: {list(versions_dir.glob('*.py'))}")
 
-        # Perform the migration
         try:
             logger.info(
                 f"Migrating db from revision {current_revision} to {desired_revision}..."
@@ -176,6 +176,44 @@ class Database:
         except Exception as e:
             logger.error(f"Migration failed: {e}")
             raise DatabaseVersionError(f"Migration failed: {e}") from e
+
+    def _register_database(self):
+        """Register this database in the configuration."""
+        try:
+            from snkmt.core.config import DatabaseConfig
+
+            config = DatabaseConfig()
+
+            if config.get_database(self.db_file):
+                return
+
+            # Use file mtime as updated_at for existing databases
+            if self.db_file.exists():
+                updated_at = datetime.fromtimestamp(self.db_file.stat().st_mtime)
+            else:
+                updated_at = None  # Will use current time in dataclass
+
+            config.add_database(
+                path=self.db_file,
+                display_name=None,  # Will default to path stem
+            )
+
+            # Update with mtime if it was an existing file
+            if updated_at:
+                # Re-read and update with mtime
+                db_entry = config.get_database(self.db_file)
+                if db_entry:
+                    db_entry.updated_at = updated_at
+
+                    config_data = config._load_config()
+                    for db_data in config_data["databases"]:
+                        if Path(db_data["path"]).resolve() == self.db_file.resolve():
+                            db_data["updated_at"] = updated_at.isoformat()
+                            break
+                    config._save_config(config_data)
+
+        except Exception as e:
+            logger.debug(f"Failed to register database in config: {e}")
 
     def _create_backup(self) -> str:
         """Create a timestamped backup of the database file."""
@@ -225,7 +263,7 @@ class Database:
 
 
 class AsyncDatabase:
-    """Async connector for the Snakemake SQLite DB using composition with sync Database."""
+    """Async connector for the snkmt DB"""
 
     def __init__(
         self,
@@ -234,6 +272,7 @@ class AsyncDatabase:
         ignore_version: bool = False,
     ):
         # Use sync Database for all initialization and migration
+        # TODO get rid of this and figure out how to properly do migrations with async engine (if its even different?)
         self._sync_db = Database(
             db_path=db_path,
             create_db=create_db,

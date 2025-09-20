@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional, List
+from typing import Optional, List, Union
 from datetime import datetime
 from uuid import UUID
 from snkmt.types.dto import (
@@ -14,7 +14,7 @@ from snkmt.types.dto import (
     UpdateRuleDTO,
     UpdateJobDTO,
 )
-from snkmt.types.enums import Status
+from snkmt.types.enums import Status, DateFilter
 
 
 class WorkflowRepository(ABC):
@@ -44,8 +44,21 @@ class WorkflowRepository(ABC):
         order_by: str = "started_at",
         descending: bool = True,
         since: Optional[datetime] = None,
+        name: Optional[str] = None,
+        status: Optional[Union[str, Status]] = None,
+        started_at: Optional[DateFilter] = None,
     ) -> List[WorkflowDTO]:
         """List workflows for dashboard table"""
+        pass
+
+    @abstractmethod
+    async def count(
+        self,
+        name: Optional[str] = None,
+        status: Optional[Union[str, Status]] = None,
+        started_at: Optional[DateFilter] = None,
+    ) -> int:
+        """Count workflows matching the given filters"""
         pass
 
     @abstractmethod
@@ -113,4 +126,19 @@ class WorkflowRepository(ABC):
         job_id: int,
         file: CreateFileDTO,
     ) -> Optional[FileDTO]:
+        pass
+
+    @abstractmethod
+    async def list_jobs(
+        self,
+        workflow_id: UUID,
+        status: Optional[Status] = None,
+        rule_id: Optional[int] = None,
+        since: Optional[datetime] = None,
+        limit: Optional[int] = None,
+        offset: int = 0,
+        order_by: str = "end_time",
+        descending: bool = True,
+    ) -> List[JobDTO]:
+        """List jobs for a workflow with optional filters"""
         pass
