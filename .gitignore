@@ -5,7 +5,8 @@ uv.lock
 demo/*
 !demo/workflows/
 !demo/run.sh
-
+**/snkmt.db
+src/snkmt/core/db/snkmt.db
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

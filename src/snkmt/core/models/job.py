@@ -5,13 +5,13 @@ from typing import TYPE_CHECKING, Any, Optional
 from sqlalchemy import ForeignKey, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship, Session
 
-from snkmt.db.models.base import Base
-from snkmt.db.models.enums import Status
+from snkmt.core.models.base import Base
+from snkmt.types.enums import Status
 
 if TYPE_CHECKING:
-    from snkmt.db.models.file import File
-    from snkmt.db.models.rule import Rule
-    from snkmt.db.models.workflow import Workflow
+    from snkmt.core.models.file import File
+    from snkmt.core.models.rule import Rule
+    from snkmt.core.models.workflow import Workflow
 
 
 class Job(Base):

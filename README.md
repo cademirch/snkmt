@@ -1,12 +1,16 @@
-# snkmt
-
-A CLI utility for monitoring running Snakemake workflows in real-time.
-
-> **Note**: This project is still under active development. Please report bugs, weird UI behavior, and feature requests - they are greatly appreciated!
+<div align="center">
+    <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/logo/snkmt_logo_dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="docs/logo/snkmt_logo_light.svg">
+    <img alt="snkmt Logo" src="docs/logo/snkmt_logo_light.svg" width="350" height="auto">
+    </picture>
+</div>
 
 ## Overview
 
 snkmt (Snakemate) works with the `snakemake-logger-plugin-snkmt` plugin to capture and store Snakemake workflow execution data in a SQLite database. This allows you to monitor workflow progress, view job statuses, and troubleshoot errors through an interactive terminal interface.
+
+> **Note**: This project is still under active development. Please report bugs, weird UI behavior, and feature requests - they are greatly appreciated!
 
 ## How it Works
 

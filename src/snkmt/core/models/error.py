@@ -5,11 +5,11 @@ from datetime import datetime
 from sqlalchemy import ForeignKey, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from snkmt.db.models.base import Base
+from snkmt.core.models.base import Base
 
 if TYPE_CHECKING:
-    from snkmt.db.models.rule import Rule
-    from snkmt.db.models.workflow import Workflow
+    from snkmt.core.models.rule import Rule
+    from snkmt.core.models.workflow import Workflow
 
 
 class Error(Base):

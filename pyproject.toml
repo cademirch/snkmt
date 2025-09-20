@@ -11,11 +11,12 @@ dependencies = [
     "sqlalchemy>=2.0.38",
     "alembic>=1.16.1,<2",
     "platformdirs>=4.3.8,<5",
-    "loguru>=0.7.3,<0.8",
+    "loguru>=0.7.3,<0.8", "aiosqlite>=0.21.0,<0.22",
+    "beaupy>=3.0.0,<4",
 ]
 
 [project.scripts]
-snkmt = "snkmt:main"
+snkmt = "snkmt.cli:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -43,17 +44,19 @@ pytest = ">=8.3.5,<9"
 ruff = ">=0.10.0,<0.11"
 mypy = ">=1.15.0,<2"
 pytest-cov = ">=6.0.0,<7"
-snakemake = ">=9.3.3,<10"
+snakemake = ">=9.9.0,<10"
 
 [tool.pixi.feature.dev.tasks]
 demo = {cmd = "./run.sh", cwd="demo"}
 cleanup-demo ={cmd = "rm -r results", cwd="demo"}
 console = {cmd = "textual run --dev -c snkmt console"}
-dev-console = {cmd = "textual console -x SYSTEM -x EVENT"}
+dev-console = {cmd = "textual console -x SYSTEM -x EVENT -x WORKER"}
 format = "ruff format src"
 lint = "ruff check"
 type-check = "mypy src/"
 qc = { depends-on = ["format", "lint", ] }
+db-migrate = {cmd = "alembic revision --autogenerate -m", cwd="src/snkmt/core/db"}
+db-upgrade = {cmd = "alembic upgrade head", cwd="src/snkmt/core/db"}
 
 [tool.pixi.feature.dev.tasks.test]
 cmd = [
@@ -80,10 +83,15 @@ ignore_missing_imports = true # Temporary until https://github.com/snakemake/sna
 disallow_untyped_defs = true
 warn_no_return = true
 
+[tool.ruff]
+exclude = ["tests/*"]
 
+[tool.pyright]
+include = ["src"]
+extraPaths = ["src"]
+typeCheckingMode = "basic"
 
-
-
-
+[dependency-groups]
+dev = ["pytest-asyncio>=1.1.0,<2", "greenlet>=3.2.4,<4", "pytest-loguru>=0.4.0,<0.5"]
 
 

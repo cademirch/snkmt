@@ -1,24 +1,177 @@
+/* ============================================================================
+   SNKMT Console CSS - Textual UI Stylesheet
+   
+   Structure Overview:
+   - App Header: Title bar with app name and database path
+   - App Body: Main content area with workflow dashboard
+   - WorkflowDashboard: Horizontal layout with workflows list and detail view
+   - OverviewContainer: Current main view with filters, table, and detail panel
+   
+   Layout Hierarchy:
+   App
+   ├── AppHeader
+   │   ├── #app-title
+   │   └── #app-db-path  
+   ├── AppBody
+   │   └── OverviewContainer (Horizontal)
+   │       ├── #workflows (.section)
+   │       │   ├── #workflows-filters (.subsection)
+   │       │   │   ├── #filter-layout (Horizontal grid)
+   │       │   │   │   ├── #name-filter
+   │       │   │   │   ├── #date-filter  
+   │       │   │   │   └── #status-filter
+   │       │   │   └── #workflow-counts
+   │       │   └── WorkflowTable
+   │       └── #selected-workflow-detail (.section)
+   │           └── WorkflowDetailOverview (.subsection)
+   └── Footer
+   
+   Modals:
+   - LogFileModal: For displaying log files
+   - CustomSourceModal: For database source input
+   ============================================================================ */
+
+/* ============================================================================
+   APP HEADER
+   ============================================================================ */
 AppHeader {
-  color: $text-primary;
-  padding: 1 3;
-  height: auto;
-  & > #app-db-path {
-      dock: right;
-      color: $text-muted;
-  }
-  & > #app-header-summary {
-      width: 1fr;
-      content-align: center middle;
-  }
+    color: $text-primary;
+    padding: 1 3;
+    height: auto;
+    
+    & > #app-db-path {
+        dock: right;
+        color: $text-muted;
+    }
+    
+    & > #app-header-summary {
+        width: 1fr;
+        content-align: center middle;
+    }
 }
 
+/* ============================================================================
+   APP BODY & MAIN LAYOUT
+   ============================================================================ */
+AppBody {
+    padding: 0 2;
+}
+
+OverviewContainer {
+    layout: horizontal;
+    height: 1fr;
+}
+
+/* ============================================================================
+   WORKFLOWS SECTION (Left Panel)
+   ============================================================================ */
+#workflows {
+    width: 1fr;
+    max-width: 80;
+    padding: 0 1;
+}
+
+#workflows > * {
+    width: 100%;
+    max-width: 80;
+    align: left top;
+}
+
+/* Workflow Filters */
+#workflows-filters {
+    height: auto;
+    layout: vertical;
+    align: center middle;
+}
+
+#filter-layout {
+    height: auto;
+    layout: grid;
+    grid-size: 3;
+    grid-columns: 2fr 1fr 1fr;  /* Name filter wider than date/status */
+    grid-gutter: 1;
+}
+
+#status-filter {
+    width: 1fr;
+    max-height: 8;
+}
+
+/* Workflow Counts Label */
+#workflow-counts {
+    width: 100%;
+    content-align: center middle;
+    color: $text-muted;
+    dock: bottom;
+}
+
+/* Workflow Table */
+WorkflowTable {
+    height: 8fr;
+}
+
+/* ============================================================================
+   WORKFLOW DETAIL SECTION (Right Panel)  
+   ============================================================================ */
+#selected-workflow-detail {
+    width: 1fr;
+    padding: 0 1;
+}
+
+WorkflowDetailOverview {
+    max-height: 11;
+}
+
+/* ============================================================================
+   SECTION & SUBSECTION STYLING
+   ============================================================================ */
+.section {
+    border: round $accent 40%;
+    border-title-color: $text-accent 50%;
+    border-title-align: right;
+    height: 1fr;
+
+    &:focus-within {
+        border: round $accent 100%;
+    }
+}
+
+.subsection {
+    border: round $accent 20%;
+    border-title-color: $text-accent 50%;
+    border-title-align: center;
+
+    &:focus-within {
+        border: round $accent 80%;
+        border-title-color: $foreground;
+        border-title-style: b;
+    }
+}
+
+/* ============================================================================
+   ERROR STYLING
+   ============================================================================ */
+#error-container {
+    height: 1fr;
+    
+    
+}
+
+.error-text {
+    color: $text-error;
+    
+}
+
+/* ============================================================================
+   MODALS
+   ============================================================================ */
 LogFileModal {
     align: center middle;
 }
 
 #modal-container {
-    width: 50%;
-    height: 50%;
+    width: 95%;
+    height: 95%;
     border: round $accent 80%;
     border-title-color: $accent 100%;
     border-title-style: b;
@@ -29,72 +182,32 @@ LogFileModal {
     padding: 1 1;
 }
 
+/* ============================================================================
+   LEGACY STYLES (May be unused after refactoring)
+   ============================================================================ */
 
-
-
-WorkflowOverview {
-  max-height: 11;
-}
-
-WorkflowTable {
-    width: auto;
-    max-width: 80;
-    content-align: center middle;
-}
-
-.overview {
+/* Legacy WorkflowDashboard - Check if still used */
+WorkflowDashboard {
+    layout: horizontal;
     height: 1fr;
 }
 
-.detail {
+/* Legacy workflow overview component */
+WorkflowOverview {
+    max-height: 11;
+}
+
+/* Legacy workflow errors */
+#workflow-errors {
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+}
+
+/* Legacy detail classes */
+.workflow-overview {
+    height: 1fr;
+}
+
+.selected-workflow-detail {
     height: 3fr;
 }
-AppBody {
-  padding: 0 2;
-}
-
-
-WorkflowDashboard {
-    layout: horizontal;
-    height: 1fr;  
-}
-
-#workflows {
-    width: auto;
-    padding: 0 1;  
-    align: center top;
-}
-
-#workflow-errors {
-    overflow-y: auto;  
-    scrollbar-gutter: stable; 
-}
-
-#detail {
-    width: 1fr;  
-    padding: 0 1;  
-}
-
-.section {
-    border: round $accent 40%;
-    border-title-color: $text-accent 50%;
-    border-title-align: right;
-    height: 1fr;  
-
-    &:focus-within {
-        border: round $accent 100%;
-    }
-}
-
-.subsection {
-  border: round $accent 20%;
-  border-title-color: $text-accent 50%;
-  border-title-align: center;
-
-  &:focus-within {
-    border: round $accent 800%;
-    border-title-color: $foreground;
-    border-title-style: b;
-  }
-}
-
