@@ -37,7 +37,7 @@ textual-dev = ">=1.7.0"
 
 [tool.pixi.feature.dev.pypi-dependencies]
 snkmt = { path = ".", editable = true }
-snakemake-logger-plugin-snkmt = { git = "https://github.com/cademirch/snakemake-logger-plugin-snkmt.git", editable = true }
+snakemake-logger-plugin-snkmt = { git = "https://github.com/cademirch/snakemake-logger-plugin-snkmt.git", editable = true, branch="dev" }
 
 [tool.pixi.feature.dev.dependencies]
 pytest = ">=8.3.5,<9"
