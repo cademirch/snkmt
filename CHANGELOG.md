@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/cademirch/snkmt/compare/v0.2.0...v0.2.1) (2025-09-20)
+
+
+### Bug Fixes
+
+* use dev branch of logger plugin ([#18](https://github.com/cademirch/snkmt/issues/18)) ([d320f51](https://github.com/cademirch/snkmt/commit/d320f51d514733eb6b1c3b27aea56f7ad663fd6e))
+
 ## [0.2.0](https://github.com/cademirch/snkmt/compare/v0.1.2...v0.2.0) (2025-09-20)
 
 
