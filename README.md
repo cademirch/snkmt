@@ -78,3 +78,7 @@ By default, snkmt stores data in the [XDG Base Directory](https://specifications
 <img src="docs/screenshots/failedjob_dropdown.png" alt="Error view showing failed jobs and log files" width="800">
 
 <img src="docs/screenshots/logfile_modal.png" alt="Error view showing failed jobs and log files" width="800">
+
+## License
+
+This project is licensed under the MIT License. See the `LICENSE` file for details.
