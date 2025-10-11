@@ -14,12 +14,13 @@ from rich.table import Table
 
 def verbose_callback(value: bool):
     """Configure logging based on verbose flag."""
-    if value:
-        logger.configure(handlers=[{"sink": sys.stderr, "level": "DEBUG"}])
-    else:
-        logger.configure(handlers=[{"sink": sys.stderr, "level": "INFO"}])
+    logger.remove()  # Remove all existing handlers first
+    # see https://loguru.readthedocs.io/en/stable/resources/troubleshooting.html#how-do-i-fix-valueerror-i-o-operation-error-on-closed-file
+    logger.add(
+        lambda msg: sys.stderr.write(msg),  # type: ignore
+        level="DEBUG" if value else "INFO",
+    )
     return value
-
 
 VerboseOption = typer.Option(
     False,
