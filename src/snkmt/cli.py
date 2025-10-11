@@ -10,13 +10,14 @@ from rich.console import Console
 from rich.table import Table
 
 
-logger.configure(handlers=[{"sink": sys.stderr, "level": "INFO"}])
 
 
 def verbose_callback(value: bool):
     """Configure logging based on verbose flag."""
     if value:
         logger.configure(handlers=[{"sink": sys.stderr, "level": "DEBUG"}])
+    else:
+        logger.configure(handlers=[{"sink": sys.stderr, "level": "INFO"}])
     return value
 
 
