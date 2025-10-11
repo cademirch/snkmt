@@ -23,10 +23,6 @@ from snkmt.core.repository.sql import SQLAlchemyWorkflowRepository
 from snkmt.core.db import SNKMT_DIR
 
 
-logger.remove()
-logger.add(sys.stderr)
-
-
 class DatabaseNotFoundError(Exception):
     """Raised when the Snakemake DB file isn’t found and creation is disabled."""
 
@@ -82,11 +78,11 @@ class Database:
 
         # Handle legacy databases first
         if is_legacy_database(self.session):
-            logger.info(
+            logger.debug(
                 "Legacy database detected - auto-stamping with appropriate revision"
             )
             stamped_revision = stamp_legacy_database(self.session, self.db_path)
-            logger.info(f"Legacy database stamped with revision: {stamped_revision}")
+            logger.debug(f"Legacy database stamped with revision: {stamped_revision}")
 
         if auto_migrate and needs_migration(self.session):
             current_revision = get_database_revision(self.session)
@@ -99,7 +95,7 @@ class Database:
                     f"Please upgrade snkmt or use a database created with a compatible version."
                 )
 
-            logger.info(
+            logger.debug(
                 f"Migrating database from {current_revision} to {latest_revision}"
             )
 
@@ -141,7 +137,7 @@ class Database:
 
         # Early exit if already at desired revision
         if current_revision == desired_revision:
-            logger.info(
+            logger.debug(
                 f"Already at desired revision {current_revision}. No migrations performed."
             )
             return
@@ -149,7 +145,7 @@ class Database:
         # Create backup if needed (skip for new databases)
         if create_backup and current_revision is not None:
             backup_path = self._create_backup()
-            logger.info(f"Created database backup: {backup_path}")
+            logger.debug(f"Created database backup: {backup_path}")
 
         # Set up paths for alembic command
         db_dir = Path(__file__).parent
@@ -158,9 +154,9 @@ class Database:
 
         # Log migration details for debugging
         versions_dir = alembic_script_location / "versions"
-        logger.info(f"Using alembic config file: {alembic_config_file}")
-        logger.info(f"Looking for migration files in: {versions_dir}")
-        logger.info(f"Migration files found: {list(versions_dir.glob('*.py'))}")
+        logger.debug(f"Using alembic config file: {alembic_config_file}")
+        logger.debug(f"Looking for migration files in: {versions_dir}")
+        logger.debug(f"Migration files found: {list(versions_dir.glob('*.py'))}")
 
         # Create temporary config file with correct database URL
         with tempfile.NamedTemporaryFile(
@@ -181,7 +177,7 @@ class Database:
             temp_config_path = temp_config.name
 
         try:
-            logger.info(
+            logger.debug(
                 f"Migrating db {self.db_path} from revision {current_revision} to {desired_revision}..."
             )
 
@@ -202,14 +198,14 @@ class Database:
                 cmd, capture_output=True, text=True, cwd=str(db_dir), check=True
             )
 
-            logger.info("Migration complete.")
+            logger.debug("Migration complete.")
             logger.debug(f"Migration stderr: {result.stderr}")
             logger.debug(f"Migration stdout: {result.stdout}")
 
         except subprocess.CalledProcessError as e:
             logger.error(f"Migration failed with exit code {e.returncode}")
-            logger.error(f"Stdout: {e.stdout}")
-            logger.error(f"Stderr: {e.stderr}")
+            logger.error(f"Alembic stdout: {e.stdout}")
+            logger.error(f"Alembic stderr: {e.stderr}")
             raise DatabaseVersionError(
                 f"Migration failed: {e.stderr or e.stdout}"
             ) from e
@@ -259,7 +255,7 @@ class Database:
                     config._save_config(config_data)
 
         except Exception as e:
-            logger.debug(f"Failed to register database in config: {e}")
+            logger.error(f"Failed to register database in config: {e}")
 
     def _create_backup(self) -> str:
         """Create a timestamped backup of the database file."""

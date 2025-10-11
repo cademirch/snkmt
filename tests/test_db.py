@@ -1,4 +1,3 @@
-from re import S
 import pytest
 
 from pathlib import Path

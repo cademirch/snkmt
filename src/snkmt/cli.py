@@ -1,11 +1,33 @@
 import typer
+import sys
 from typing import Optional
 from pathlib import Path
+from loguru import logger
 from snkmt.core.db.session import Database
 from snkmt.core.config import DatabaseConfig
 from beaupy import select_multiple, confirm
 from rich.console import Console
 from rich.table import Table
+
+
+logger.configure(handlers=[{"sink": sys.stderr, "level": "INFO"}])
+
+
+def verbose_callback(value: bool):
+    """Configure logging based on verbose flag."""
+    if value:
+        logger.configure(handlers=[{"sink": sys.stderr, "level": "DEBUG"}])
+    return value
+
+
+VerboseOption = typer.Option(
+    False,
+    "--verbose",
+    "-v",
+    help="Enable debug logging.",
+    callback=verbose_callback,
+    is_eager=True,
+)
 
 
 app = typer.Typer(
@@ -38,6 +60,7 @@ db_app.add_typer(
 def version_callback(value: bool):
     if value:
         from snkmt.version import VERSION
+
         typer.echo(f"snkmt {VERSION}")
         raise typer.Exit()
 
@@ -47,11 +70,11 @@ def callback(
     version: Optional[bool] = typer.Option(
         None,
         "--version",
-        "-v",
         help="Show version and exit.",
         callback=version_callback,
         is_eager=True,
-    )
+    ),
+    verbose: bool = VerboseOption,
 ):
     """Monitor Snakemake workflow executions."""
     pass
@@ -85,7 +108,8 @@ def db_info(
         "--db-path",
         "-d",
         help="Database path (default: user data dir).",
-    )
+    ),
+    verbose: bool = VerboseOption,
 ):
     """Display database information and schema version."""
     database = Database(db, create_db=False, auto_migrate=False)
@@ -99,7 +123,8 @@ def db_migrate(
         "--db-path",
         "-d",
         help="Database path (default: user data dir).",
-    )
+    ),
+    verbose: bool = VerboseOption,
 ):
     """Run database migrations to upgrade schema to latest version."""
     database = Database(db, create_db=False, auto_migrate=False, ignore_version=True)
@@ -117,6 +142,7 @@ def db_stamp(
         "-d",
         help="Database path (default: user data dir).",
     ),
+    verbose: bool = VerboseOption,
 ):
     """Manually stamp database with a schema revision without running migrations."""
     import subprocess
@@ -206,7 +232,7 @@ def db_stamp(
 
 #### CONFIG APP COMMANDS
 @config_app.callback()
-def config_callback():
+def config_callback(verbose: bool = VerboseOption):
     pass
 
 
