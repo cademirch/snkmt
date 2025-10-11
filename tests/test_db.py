@@ -167,7 +167,7 @@ def test_legacy_database(temp_db_path, caplog):
     test_db = Path(temp_db_path)
     shutil.copy(legacy_db, test_db)
 
-    with caplog.at_level(logging.INFO):
+    with caplog.at_level(logging.DEBUG):
         db = Database(
             db_path=str(temp_db_path),
             create_db=False,
