@@ -10,8 +10,6 @@ from rich.console import Console
 from rich.table import Table
 
 
-
-
 def verbose_callback(value: bool):
     """Configure logging based on verbose flag."""
     logger.remove()  # Remove all existing handlers first
@@ -21,6 +19,7 @@ def verbose_callback(value: bool):
         level="DEBUG" if value else "INFO",
     )
     return value
+
 
 VerboseOption = typer.Option(
     False,
