@@ -1,11 +1,34 @@
 import typer
+import sys
 from typing import Optional
 from pathlib import Path
+from loguru import logger
 from snkmt.core.db.session import Database
 from snkmt.core.config import DatabaseConfig
 from beaupy import select_multiple, confirm
 from rich.console import Console
 from rich.table import Table
+
+
+def verbose_callback(value: bool):
+    """Configure logging based on verbose flag."""
+    logger.remove()  # Remove all existing handlers first
+    # see https://loguru.readthedocs.io/en/stable/resources/troubleshooting.html#how-do-i-fix-valueerror-i-o-operation-error-on-closed-file
+    logger.add(
+        lambda msg: sys.stderr.write(msg),  # type: ignore
+        level="DEBUG" if value else "INFO",
+    )
+    return value
+
+
+VerboseOption = typer.Option(
+    False,
+    "--verbose",
+    "-v",
+    help="Enable debug logging.",
+    callback=verbose_callback,
+    is_eager=True,
+)
 
 
 app = typer.Typer(
@@ -15,16 +38,46 @@ app = typer.Typer(
     no_args_is_help=True,
 )
 
-db_app = typer.Typer()
-app.add_typer(db_app, name="db")
+db_app = typer.Typer(
+    name="db",
+    help="Manage snkmt databases.",
+    add_completion=False,
+    no_args_is_help=True,
+)
+app.add_typer(db_app)
 
-config_app = typer.Typer()
-db_app.add_typer(config_app, name="config")
+config_app = typer.Typer(
+    name="config",
+    help="Manage database configuration.",
+    add_completion=False,
+    no_args_is_help=True,
+)
+db_app.add_typer(
+    config_app,
+)
 
 
 ### MAIN APP COMMANDS
-@app.callback()
-def callback():
+def version_callback(value: bool):
+    if value:
+        from snkmt.version import VERSION
+
+        typer.echo(f"snkmt {VERSION}")
+        raise typer.Exit()
+
+
+@app.callback(invoke_without_command=True)
+def callback(
+    version: Optional[bool] = typer.Option(
+        None,
+        "--version",
+        help="Show version and exit.",
+        callback=version_callback,
+        is_eager=True,
+    ),
+    verbose: bool = VerboseOption,
+):
+    """Monitor Snakemake workflow executions."""
     pass
 
 
@@ -34,10 +87,10 @@ def launch_console(
         None,
         "--db-path",
         "-d",
-        help="Path to a snkmt database. Can be provided multiple times.",
+        help="Path to a snkmt database. Can be specified multiple times to monitor multiple databases.",
     ),
 ):
-    """Launch the interactive console UI"""
+    """Launch the interactive console UI to monitor workflows."""
     from snkmt.console.app import run_app
 
     run_app(directory)
@@ -50,13 +103,31 @@ def db_callback():
 
 
 @db_app.command("info")
-def db_info(db: Optional[str] = None):
+def db_info(
+    db: Optional[str] = typer.Option(
+        None,
+        "--db-path",
+        "-d",
+        help="Database path (default: user data dir).",
+    ),
+    verbose: bool = VerboseOption,
+):
+    """Display database information and schema version."""
     database = Database(db, create_db=False, auto_migrate=False)
     print(f"Database info: {database.get_db_info()}")
 
 
 @db_app.command("migrate")
-def db_migrate(db: Optional[str]):
+def db_migrate(
+    db: Optional[str] = typer.Option(
+        None,
+        "--db-path",
+        "-d",
+        help="Database path (default: user data dir).",
+    ),
+    verbose: bool = VerboseOption,
+):
+    """Run database migrations to upgrade schema to latest version."""
     database = Database(db, create_db=False, auto_migrate=False, ignore_version=True)
     database.migrate()
 
@@ -64,13 +135,17 @@ def db_migrate(db: Optional[str]):
 @db_app.command("stamp")
 def db_stamp(
     revision: Optional[str] = typer.Argument(
-        None, help="Revision to stamp (default: latest)"
+        None, help="Alembic revision to stamp (default: latest)."
     ),
     db: Optional[str] = typer.Option(
-        None, help="Database path (default: user data dir)"
+        None,
+        "--db-path",
+        "-d",
+        help="Database path (default: user data dir).",
     ),
+    verbose: bool = VerboseOption,
 ):
-    """Stamp database with a specific revision without running migrations."""
+    """Manually stamp database with a schema revision without running migrations."""
     import subprocess
     import sys
     from pathlib import Path
@@ -158,7 +233,7 @@ def db_stamp(
 
 #### CONFIG APP COMMANDS
 @config_app.callback()
-def config_callback():
+def config_callback(verbose: bool = VerboseOption):
     pass
 
 
@@ -194,10 +269,15 @@ def config_list():
 
 @config_app.command("add")
 def config_add(
-    path: str = typer.Argument(help="Database path"),
-    name: Optional[str] = typer.Option(None, "--name", "-n", help="Display name"),
+    path: str = typer.Argument(help="Path to the database file to add."),
+    name: Optional[str] = typer.Option(
+        None,
+        "--name",
+        "-n",
+        help="Display name for the database (default: filename stem).",
+    ),
 ):
-    """Add a database to configuration."""
+    """Add a database to the configuration file."""
     db_path = Path(path).resolve()
 
     if not db_path.exists():
@@ -219,7 +299,7 @@ def config_add(
 
 @config_app.command("remove")
 def config_remove():
-    """Remove databases from configuration."""
+    """Interactively remove databases from the configuration file."""
     config = DatabaseConfig()
     databases = config.list_databases()
 
@@ -246,10 +326,10 @@ def config_remove():
 @config_app.command("discover")
 def config_discover(
     directory: Optional[str] = typer.Argument(
-        None, help="Directory to search (default: current)"
+        None, help="Directory to search for .db files (default: current directory)."
     ),
 ):
-    """Discover database files and optionally add them."""
+    """Search for database files recursively and add them to configuration."""
     search_dir = Path(directory) if directory else Path.cwd()
 
     if not search_dir.exists():
