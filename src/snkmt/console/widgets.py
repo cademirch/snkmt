@@ -15,7 +15,7 @@ from textual.widgets import (
     Log,
 )
 from textual.screen import ModalScreen
-from textual.widgets.data_table import RowKey, CellDoesNotExist
+from textual.widgets.data_table import RowKey, CellDoesNotExist, DuplicateKey
 from datetime import datetime, timezone
 from rich.text import TextType, Text
 from textual.app import ComposeResult
@@ -263,7 +263,13 @@ class WorkflowTable(DataTable):
             workflow_id = str(workflow.id)
             if workflow_id not in self.hidden_rows and workflow_id not in self.rows:
                 row_data = self._workflow_to_row(workflow)
-                self.add_row(*row_data, key=workflow_id)
+                try:
+                    self.add_row(*row_data, key=workflow_id)
+                except DuplicateKey:
+                    self.log.debug(
+                        f"Duplicated workflowid when refreshing table: {workflow_id}"
+                    )
+                    return
 
         self._last_filtered_count = len(workflows)
         self._last_total_count = total_count
