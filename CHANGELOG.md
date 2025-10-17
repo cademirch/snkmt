@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.2](https://github.com/cademirch/snkmt/compare/v0.2.1...v0.2.2) (2025-10-17)
+
+
+### Bug Fixes
+
+* add version flag, logging cleanup ([#28](https://github.com/cademirch/snkmt/issues/28)) ([778da93](https://github.com/cademirch/snkmt/commit/778da93cbd1098223ea82b3328a13a97fafd4464))
+* duplicate workflow id when opening console ([#30](https://github.com/cademirch/snkmt/issues/30)) ([18fc9a2](https://github.com/cademirch/snkmt/commit/18fc9a2e12fb59118a41f38c54744d284d179b76))
+
 ## [0.2.1](https://github.com/cademirch/snkmt/compare/v0.2.0...v0.2.1) (2025-09-20)
 
 
