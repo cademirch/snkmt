@@ -55,10 +55,9 @@ class Database:
         if not db_file.exists() and not create_db:
             raise DatabaseNotFoundError(f"DB file not found: {db_file}")
 
-        self.db_path = str(db_file)  # Always absolute path
+        self.db_path = str(db_file)
         self.db_file = db_file  # Keep Path object for config registration
 
-        # Register database in config
         self._register_database()
         self.engine = create_engine(
             f"sqlite:///{self.db_path}",
@@ -76,7 +75,6 @@ class Database:
 
         # Don't create tables here - let alembic handle it during migration
 
-        # Handle legacy databases first
         if is_legacy_database(self.session):
             logger.debug(
                 "Legacy database detected - auto-stamping with appropriate revision"
@@ -99,7 +97,6 @@ class Database:
                 f"Migrating database from {current_revision} to {latest_revision}"
             )
 
-            # For new databases (no alembic_version), don't create backup
             create_backup = current_revision is not None
             self.migrate(create_backup=create_backup)
         elif not auto_migrate and needs_migration(self.session):
@@ -128,31 +125,25 @@ class Database:
         assert self.engine
         assert self.session
 
-        # Determine target revision
         if desired_revision is None:
             desired_revision = get_latest_revision()
 
-        # Check current revision
         current_revision = get_database_revision(self.session)
 
-        # Early exit if already at desired revision
         if current_revision == desired_revision:
             logger.debug(
                 f"Already at desired revision {current_revision}. No migrations performed."
             )
             return
 
-        # Create backup if needed (skip for new databases)
         if create_backup and current_revision is not None:
             backup_path = self._create_backup()
             logger.debug(f"Created database backup: {backup_path}")
 
-        # Set up paths for alembic command
         db_dir = Path(__file__).parent
         alembic_config_file = db_dir / "alembic.ini"
         alembic_script_location = db_dir / "alembic"
 
-        # Log migration details for debugging
         versions_dir = alembic_script_location / "versions"
         logger.debug(f"Using alembic config file: {alembic_config_file}")
         logger.debug(f"Looking for migration files in: {versions_dir}")
@@ -213,7 +204,6 @@ class Database:
             logger.error(f"Migration failed: {e}")
             raise DatabaseVersionError(f"Migration failed: {e}") from e
         finally:
-            # Clean up temporary config file
             try:
                 os.unlink(temp_config_path)
             except OSError:
@@ -229,20 +219,17 @@ class Database:
             if config.get_database(self.db_file):
                 return
 
-            # Use file mtime as updated_at for existing databases
             if self.db_file.exists():
                 updated_at = datetime.fromtimestamp(self.db_file.stat().st_mtime)
             else:
-                updated_at = None  # Will use current time in dataclass
+                updated_at = None
 
             config.add_database(
                 path=self.db_file,
-                display_name=None,  # Will default to path stem
+                display_name=None,
             )
 
-            # Update with mtime if it was an existing file
             if updated_at:
-                # Re-read and update with mtime
                 db_entry = config.get_database(self.db_file)
                 if db_entry:
                     db_entry.updated_at = updated_at
@@ -267,13 +254,11 @@ class Database:
         )
         backup_path = db_path.parent / backup_name
 
-        # Close session temporarily to ensure file is not locked
         self.session.close()
 
         try:
             shutil.copy2(self.db_path, backup_path)
         finally:
-            # Reopen session
             self.session = self.get_session()
 
         return str(backup_path)
@@ -356,7 +341,6 @@ class AsyncDatabase:
         info["engine"] = str(self.engine.url)
         return info
 
-    # Async-specific methods
     def get_session(self) -> async_sessionmaker[AsyncSession]:
         """Return async session factory."""
         return self.SessionLocal

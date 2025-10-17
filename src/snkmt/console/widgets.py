@@ -15,7 +15,7 @@ from textual.widgets import (
     Log,
 )
 from textual.screen import ModalScreen
-from textual.widgets.data_table import RowKey, CellDoesNotExist
+from textual.widgets.data_table import RowKey, CellDoesNotExist, DuplicateKey
 from datetime import datetime, timezone
 from rich.text import TextType, Text
 from textual.app import ComposeResult
@@ -251,27 +251,29 @@ class WorkflowTable(DataTable):
     async def _refresh_table(self) -> None:
         self.clear()
 
-        # Get filtered workflows (no limit)
         workflows = await self.repo.list(
             name=self.name_filter or None,
             status=self.status_filter if self.status_filter != "all" else None,
             started_at=self.date_filter if self.date_filter != DateFilter.ANY else None,
         )
 
-        # Get total count (no filters)
         total_count = await self.repo.count()
 
         for workflow in workflows:
             workflow_id = str(workflow.id)
-            if workflow_id not in self.hidden_rows:
+            if workflow_id not in self.hidden_rows and workflow_id not in self.rows:
                 row_data = self._workflow_to_row(workflow)
-                self.add_row(*row_data, key=workflow_id)
+                try:
+                    self.add_row(*row_data, key=workflow_id)
+                except DuplicateKey:
+                    self.log.debug(
+                        f"Duplicated workflowid when refreshing table: {workflow_id}"
+                    )
+                    return
 
-        # Store counts for hide/unhide actions
         self._last_filtered_count = len(workflows)
         self._last_total_count = total_count
 
-        # Post table refresh message with counts
         visible_count = len(self.rows)
         filtered_count = len(workflows)
         hidden_count = len(self.hidden_rows)
@@ -317,7 +319,6 @@ class WorkflowTable(DataTable):
                     self.hidden_rows.add(row_key)
                     self.remove_row(row_key)
 
-                    # Post updated counts
                     visible_count = len(self.rows)
                     hidden_count = len(self.hidden_rows)
                     self.post_message(
@@ -339,7 +340,6 @@ class WorkflowTable(DataTable):
             self.hidden_rows.clear()
             self.log.info(f"Unhid {count_before} workflows")
 
-            # Force reload to show previously hidden workflows
             self.last_update = None
             self._refresh_table()
 
@@ -374,12 +374,10 @@ class WorkflowDetailOverview(Container):
         if new_data is None:
             return
 
-        # Only recompose if workflow changed or first time
         if old_data is None or str(old_data.id) != str(new_data.id):
             self.log.debug("New workflow selected, recomposing")
             self._last_workflow_id = str(new_data.id)
         else:
-            # Same workflow, update only changed fields
             self._update_table_cells(old_data, new_data)
 
     def _update_table_cells(self, old_data: WorkflowDTO, new_data: WorkflowDTO) -> None:
@@ -390,7 +388,6 @@ class WorkflowDetailOverview(Container):
             columns = list(table.columns.values())
             value_column_key = columns[1].key
 
-            # Row 3: Updated At
             if old_data.updated_at != new_data.updated_at and len(rows) > 3:
                 table.update_cell(
                     rows[3],
@@ -404,19 +401,16 @@ class WorkflowDetailOverview(Container):
                     ),
                 )
 
-            # Row 5: Status
             if old_data.status != new_data.status and len(rows) > 5:
                 table.update_cell(
                     rows[5], value_column_key, StyledStatus(new_data.status)
                 )
 
-            # Row 6: Progress
             if old_data.progress != new_data.progress and len(rows) > 6:
                 table.update_cell(
                     rows[6], value_column_key, StyledProgress(new_data.progress)
                 )
 
-            # Row 7: Total Jobs
             if old_data.total_job_count != new_data.total_job_count and len(rows) > 7:
                 table.update_cell(
                     rows[7],
@@ -424,7 +418,6 @@ class WorkflowDetailOverview(Container):
                     Text(str(new_data.total_job_count), justify="left"),
                 )
 
-            # Row 8: Jobs Finished
             if old_data.jobs_finished != new_data.jobs_finished and len(rows) > 8:
                 table.update_cell(
                     rows[8],
@@ -532,18 +525,16 @@ class WorkflowErrors(Container):
         if self.workflow_id is None:
             return
 
-        # Get workflow data
         workflow = await self.repo.get(self.workflow_id)
         if not workflow:
             error_label = Label("Workflow not found. Something went wrong.")
             await self.mount(error_label)
             return
 
-        # Get all failed jobs for this workflow
         failed_jobs = await self.repo.list_jobs(
             workflow_id=self.workflow_id,
             status=Status.ERROR,
-            limit=100,  # Limit to reasonable number
+            limit=100,
         )
 
         if not failed_jobs:
@@ -551,7 +542,6 @@ class WorkflowErrors(Container):
             await self.mount(no_errors_label)
             return
 
-        # Group jobs by rule name
         jobs_by_rule: dict[str, list[JobDTO]] = {}
         for job in failed_jobs:
             rule_name = job.rule_name or "Unknown Rule"
@@ -559,7 +549,6 @@ class WorkflowErrors(Container):
                 jobs_by_rule[rule_name] = []
             jobs_by_rule[rule_name].append(job)
 
-        # Create collapsible for each rule with failed jobs
         for rule_name, jobs in jobs_by_rule.items():
             labels = []
             for job in jobs:
