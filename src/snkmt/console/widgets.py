@@ -57,9 +57,6 @@ class StyledStatus(Text):
 
 
 class RuleTable(DataTable):
-    BINDINGS = [
-        ("enter", "select_cursor", "Select"),
-    ]
     workflow_id: reactive[UUID | None] = reactive(None, layout=True)
 
     def __init__(self, repo: WorkflowRepository, *args, **kwargs):
