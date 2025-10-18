@@ -94,7 +94,7 @@ class OverviewContainer(Horizontal):
                 detail_overview.workflow_data = selected_workflow_data
 
     @work(exclusive=True)
-    @on(WorkflowTable.RowSelected)
+    @on(WorkflowTable.RowSelected, "#workflow-table")
     async def handle_workflow_selected(self, event: WorkflowTable.RowSelected) -> None:
         """Handle row selection (clicking or pressing enter)."""
         workflow_id = event.row_key.value
@@ -169,7 +169,8 @@ class OverviewContainer(Horizontal):
                         id="workflow-counts",
                     )
                 workflow_table_container.border_title = "Workflows"
-                yield WorkflowTable(self.repo)
+
+                yield WorkflowTable(self.repo, id="workflow-table")
             # Right panel: info on selected workflow
             with Container(
                 classes="section", id="selected-workflow-detail"
