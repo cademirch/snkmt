@@ -76,11 +76,10 @@ class DashboardScreen(Screen):
         self.log.info(f"{datasource_url=}")
 
     def compose(self) -> ComposeResult:
-        yield AppHeader(datasource=self.datasource, id="header")
-
         try:
             db = AsyncDatabase(self.datasource, create_db=False)
             repo = db.get_workflow_repository()
+            yield AppHeader(datasource=db.db_path, id="header")
             yield OverviewContainer(repo)
         except Exception as e:
             from snkmt.core.db.session import DatabaseNotFoundError
