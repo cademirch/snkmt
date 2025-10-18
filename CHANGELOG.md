@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.3](https://github.com/cademirch/snkmt/compare/v0.2.2...v0.2.3) (2025-10-18)
+
+
+### Bug Fixes
+
+* make rule table not selectable ([#31](https://github.com/cademirch/snkmt/issues/31)) ([9360502](https://github.com/cademirch/snkmt/commit/9360502b89eb7b3d13237c8e5f9433c69de38bb0))
+
 ## [0.2.2](https://github.com/cademirch/snkmt/compare/v0.2.1...v0.2.2) (2025-10-17)
 
 
