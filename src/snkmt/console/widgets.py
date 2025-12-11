@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 from rich.text import TextType, Text
 from textual.app import ComposeResult
 from textual.containers import Container
-from snkmt.types.dto import JobDTO, WorkflowDTO
+from snkmt.types.dto import JobDTO, RuleDTO, WorkflowDTO
 from snkmt.types.enums import Status, DateFilter
 from snkmt.core.repository import WorkflowRepository
 
@@ -77,7 +77,7 @@ class RuleTable(DataTable):
 
     async def on_mount(self) -> None:
         self.last_update = datetime.now(timezone.utc)
-        self.set_interval(1, self.update_rules)
+        self.set_interval(0.5, self.update_rules)
 
     @work(exclusive=True)
     async def update_rules(self) -> None:
@@ -122,7 +122,7 @@ class RuleTable(DataTable):
             row_data = self._rule_to_row(rule)
             self.add_row(*row_data, key=rule.name)
 
-    def _rule_to_row(self, rule) -> List[TextType]:
+    def _rule_to_row(self, rule: RuleDTO) -> List[TextType]:
         # Calculate progress as jobs_finished / total_job_count
         progress = (
             rule.jobs_finished / rule.total_job_count
@@ -130,19 +130,14 @@ class RuleTable(DataTable):
             else 0.0
         )
 
-        # Calculate job counts (we'll need to add these to the DTO)
-        running_jobs = rule.total_job_count - rule.jobs_finished
-        pending_jobs = 0  # Will need to be calculated properly
-        failed_jobs = 0  # Will need to be calculated properly
-
         return [
             rule.name,
             StyledProgress(progress),
             str(rule.total_job_count),
             str(rule.jobs_finished),
-            str(running_jobs),
-            str(pending_jobs),
-            str(failed_jobs),
+            str(rule.job_counts.running),
+            str(rule.job_counts.pending),
+            str(rule.job_counts.failed),
         ]
 
     def _update_row(self, key: str, row_data: List[TextType]) -> None:

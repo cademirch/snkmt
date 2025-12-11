@@ -39,6 +39,15 @@ class UpdateWorkflowDTO:
 
 
 @dataclass
+class JobCounts:
+    total: int
+    running: int
+    pending: int
+    failed: int
+    success: int
+
+
+@dataclass
 class RuleDTO:
     id: int
     name: str
@@ -46,6 +55,7 @@ class RuleDTO:
     total_job_count: int
     jobs_finished: int
     updated_at: datetime
+    job_counts: JobCounts
 
     @property
     def progress(self) -> float:
