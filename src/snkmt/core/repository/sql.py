@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import async_sessionmaker
-from sqlalchemy import select, and_, func
+from sqlalchemy import select, and_, func, case
 from sqlalchemy.orm import selectinload
 from typing import Optional, List, Union
 from datetime import datetime, timezone, timedelta
@@ -9,6 +9,7 @@ from snkmt.core.models import Workflow, Rule, Job, File
 from snkmt.types.enums import Status, DateFilter
 from snkmt.core.repository import WorkflowRepository
 from snkmt.types.dto import (
+    JobCounts,
     WorkflowDTO,
     RuleDTO,
     JobDTO,
@@ -218,7 +219,47 @@ class SQLAlchemyWorkflowRepository(WorkflowRepository):
 
             result = await session.execute(stmt)
             rules = result.scalars().all()
-            return [self._rule_to_dto(r) for r in rules]
+
+            if rules:
+                rule_ids = [r.id for r in rules]
+                counts_result = await session.execute(
+                    select(
+                        Job.rule_id,
+                        func.sum(
+                            case((Job.status == Status.RUNNING, 1), else_=0)
+                        ).label("running"),
+                        func.sum(case((Job.status == Status.ERROR, 1), else_=0)).label(
+                            "failed"
+                        ),
+                        func.sum(
+                            case((Job.status == Status.SUCCESS, 1), else_=0)
+                        ).label("success"),
+                    )
+                    .where(Job.rule_id.in_(rule_ids))
+                    .group_by(Job.rule_id)
+                )
+
+                counts_by_rule = {}
+                for row in counts_result:
+                    counts_by_rule[row.rule_id] = {
+                        "running": row.running or 0,
+                        "failed": row.failed or 0,
+                        "success": row.success or 0,
+                    }
+
+                dtos = []
+                for rule in rules:
+                    job_counts_dict = counts_by_rule.get(
+                        rule.id, {"running": 0, "failed": 0, "success": 0}
+                    )
+                    pending = rule.total_job_count - sum(job_counts_dict.values())
+                    job_counts_dict["pending"] = pending
+                    job_counts_dict["total"] = rule.total_job_count
+                    job_counts = JobCounts(**job_counts_dict)
+                    dtos.append(self._rule_to_dto(rule, job_counts))
+                return dtos
+
+            return []
 
     async def list_rule_jobs(self, workflow_id: UUID, rule_id: int) -> List[JobDTO]:
         async with self.async_session() as session:
@@ -233,7 +274,7 @@ class SQLAlchemyWorkflowRepository(WorkflowRepository):
 
     async def create_rule(
         self, workflow_id: UUID, rule: CreateRuleDTO
-    ) -> Optional[RuleDTO]:
+    ) -> Optional[int]:
         async with self.async_session() as session:
             # Check workflow exists
             wf_exists = await session.get(Workflow, workflow_id)
@@ -248,11 +289,11 @@ class SQLAlchemyWorkflowRepository(WorkflowRepository):
             session.add(new_rule)
             await session.commit()
             await session.refresh(new_rule)
-            return self._rule_to_dto(new_rule)
+            return new_rule.id
 
     async def update_rule(
         self, workflow_id: UUID, rule_id: int, update: UpdateRuleDTO
-    ) -> Optional[RuleDTO]:
+    ) -> Optional[int]:
         async with self.async_session() as session:
             stmt = select(Rule).where(
                 and_(Rule.id == rule_id, Rule.workflow_id == workflow_id)
@@ -270,7 +311,7 @@ class SQLAlchemyWorkflowRepository(WorkflowRepository):
 
             await session.commit()
             await session.refresh(rule)
-            return self._rule_to_dto(rule)
+            return rule_id
 
     async def create_job(
         self, workflow_id: UUID, rule_id: int, job: CreateJobDTO
@@ -374,7 +415,7 @@ class SQLAlchemyWorkflowRepository(WorkflowRepository):
             else [],
         )
 
-    def _rule_to_dto(self, rule: Rule) -> RuleDTO:
+    def _rule_to_dto(self, rule: Rule, job_counts: JobCounts) -> RuleDTO:
         return RuleDTO(
             id=rule.id,
             name=rule.name,
@@ -382,6 +423,7 @@ class SQLAlchemyWorkflowRepository(WorkflowRepository):
             total_job_count=rule.total_job_count,
             jobs_finished=rule.jobs_finished,
             updated_at=rule.updated_at,
+            job_counts=job_counts,
         )
 
     def _job_to_dto(self, job: Job) -> JobDTO:

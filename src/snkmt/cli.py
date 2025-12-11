@@ -207,9 +207,7 @@ def db_stamp(
             revision,
         ]
 
-        result = subprocess.run(
-            cmd, capture_output=True, text=True, cwd=str(db_dir), check=True
-        )
+        subprocess.run(cmd, capture_output=True, text=True, cwd=str(db_dir), check=True)
 
         typer.echo(f"Database stamped with revision: {revision}")
     except subprocess.CalledProcessError as e:
