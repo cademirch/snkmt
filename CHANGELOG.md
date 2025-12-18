@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.4](https://github.com/cademirch/snkmt/compare/v0.2.3...v0.2.4) (2025-12-11)
+
+
+### Bug Fixes
+
+* properly display pending job count in RuleTable ([#34](https://github.com/cademirch/snkmt/issues/34)) ([8db371a](https://github.com/cademirch/snkmt/commit/8db371a61b9e73ad84adf0cd0d14c238dd4c8234))
+
 ## [0.2.3](https://github.com/cademirch/snkmt/compare/v0.2.2...v0.2.3) (2025-10-18)
 
 
