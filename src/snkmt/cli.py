@@ -18,6 +18,7 @@ def verbose_callback(value: bool):
         lambda msg: sys.stderr.write(msg),  # type: ignore
         level="DEBUG" if value else "INFO",
     )
+    logger.enable("snkmt")
     return value
 
 
