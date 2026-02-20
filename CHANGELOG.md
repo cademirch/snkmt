@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.5](https://github.com/cademirch/snkmt/compare/v0.2.4...v0.2.5) (2026-02-20)
+
+
+### Bug Fixes
+
+* disable loguru logging by default to prevent debug messages leaking in plugin context ([#36](https://github.com/cademirch/snkmt/issues/36)) ([5dc6122](https://github.com/cademirch/snkmt/commit/5dc6122e2ba6fba9642d0a735466b8025875f779))
+
 ## [0.2.4](https://github.com/cademirch/snkmt/compare/v0.2.3...v0.2.4) (2025-12-11)
 
 
