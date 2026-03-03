@@ -164,6 +164,7 @@ class WorkflowTable(DataTable):
         ("enter", "select_cursor", "Select"),
         ("h", "hide_selected", "Hide Selected"),
         ("u", "unhide_all", "Unhide All"),
+        ("d", "delete_selected", "Delete"),
     ]
     name_filter: reactive[str] = reactive("", layout=True)
     date_filter: reactive[DateFilter] = reactive(DateFilter.ANY, layout=True)
@@ -324,6 +325,61 @@ class WorkflowTable(DataTable):
 
         except CellDoesNotExist as e:
             self.log.debug(f"Tried to hide workflow but failed: {e}")
+
+    def action_delete_selected(self) -> None:
+        """Delete the currently selected workflow after confirmation."""
+        try:
+            row_key, _ = self.coordinate_to_cell_key(self.cursor_coordinate)
+            if row_key:
+                workflow_id = str(row_key.value)
+
+                try:
+                    row_data = self.get_row(row_key)
+                    workflow_name = str(row_data[2]) if row_data else workflow_id[-6:]
+                except Exception:
+                    workflow_name = workflow_id[-6:]
+
+                self.app.push_screen(
+                    ConfirmDeleteModal(workflow_id, workflow_name),
+                    callback=lambda confirmed: self._handle_delete_confirmed(
+                        confirmed, row_key, workflow_id
+                    ),  # type: ignore
+                )  # type: ignore
+        except CellDoesNotExist as e:
+            self.log.debug(f"Tried to delete workflow but failed: {e}")
+
+    @work(exclusive=False)
+    async def _handle_delete_confirmed(
+        self, confirmed: bool, row_key: RowKey, workflow_id: str
+    ) -> None:
+        """Handle the result of the delete confirmation modal."""
+        if not confirmed:
+            return
+
+        success = await self.repo.delete(UUID(workflow_id))
+        if success:
+            self.log.info(f"Deleted workflow {workflow_id}")
+            # Remove from table display
+            if row_key in self.rows:
+                self.remove_row(row_key)
+            # Also clean up from hidden_rows if it was there
+            self.hidden_rows.discard(row_key)
+
+            # Update counts immediately
+            self._last_total_count -= 1
+            self._last_filtered_count = max(0, self._last_filtered_count - 1)
+            visible_count = len(self.rows)
+            hidden_count = len(self.hidden_rows)
+            self.post_message(
+                self.TableRefreshed(
+                    visible_count,
+                    self._last_filtered_count,
+                    hidden_count,
+                    self._last_total_count,
+                )
+            )
+        else:
+            self.log.error(f"Failed to delete workflow {workflow_id}")
 
     def action_unhide_all(self) -> None:
         """Show all hidden workflows."""
@@ -562,6 +618,45 @@ class WorkflowErrors(Container):
                 collapsed=True,
             )
             await self.mount(collapsible)
+
+
+class ConfirmDeleteModal(ModalScreen[bool]):
+    """Modal to confirm workflow deletion."""
+
+    BINDINGS = [
+        ("escape", "cancel", "Cancel"),
+        ("enter", "confirm", "Confirm Delete"),
+    ]
+
+    def __init__(self, workflow_id: str, workflow_name: str, *args, **kwargs):
+        self.workflow_id = workflow_id
+        self.workflow_name = workflow_name
+        super().__init__(*args, **kwargs)
+
+    def compose(self) -> ComposeResult:
+        container = Container(id="confirm-delete-container")
+        container.border_title = "Confirm Deletion"
+        with container:
+            yield Label(
+                f"Are you sure you want to permanently delete this workflow?\n\n"
+                f"  Workflow:  [bold]{self.workflow_name}[/bold]\n"
+                f"  ID:        [dim]{self.workflow_id}[/dim]\n\n"
+                f"This will delete all log records related to this workflow in the database."
+                f"This action cannot be undone.",
+                id="confirm-delete-message",
+                markup=True,
+            )
+            yield Label(
+                "[bold]Enter[/bold] to delete  |  [bold]Escape[/bold] to cancel",
+                id="confirm-delete-hint",
+                markup=True,
+            )
+
+    def action_confirm(self) -> None:
+        self.dismiss(True)
+
+    def action_cancel(self) -> None:
+        self.dismiss(False)
 
 
 class LogFileModal(ModalScreen):
