@@ -182,6 +182,34 @@ LogFileModal {
     padding: 1 1;
 }
 
+ConfirmDeleteModal {
+    align: center middle;
+}
+
+#confirm-delete-container {
+    width: 65;
+    height: auto;
+    max-height: 16;
+    border: round $error 80%;
+    border-title-color: $error 100%;
+    border-title-style: b;
+    border-title-align: center;
+    background: $surface;
+    padding: 1 2;
+}
+
+#confirm-delete-message {
+    width: 100%;
+    margin-bottom: 1;
+}
+
+#confirm-delete-hint {
+    width: 100%;
+    content-align: center middle;
+    text-align: center;
+    color: $text-muted;
+}
+
 /* ============================================================================
    LEGACY STYLES (May be unused after refactoring)
    ============================================================================ */
