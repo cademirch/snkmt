@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/cademirch/snkmt/compare/v0.2.5...v0.3.0) (2026-03-03)
+
+
+### Features
+
+* delete workflows ([#40](https://github.com/cademirch/snkmt/issues/40)) ([3dcbaac](https://github.com/cademirch/snkmt/commit/3dcbaac3b0394d595b9eca945c11fbd7e40d0a3f))
+
 ## [0.2.5](https://github.com/cademirch/snkmt/compare/v0.2.4...v0.2.5) (2026-02-20)
 
 
