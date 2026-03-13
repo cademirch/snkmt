@@ -31,6 +31,20 @@ class OverviewContainer(Horizontal):
         self.hidden_workflows = 0
         self.selected_workflow = None
 
+    def force_refresh(self) -> None:
+        """Force refresh all visible tables in the current view."""
+        try:
+            workflow_table = self.query_one(WorkflowTable)
+            workflow_table._refresh_table()
+        except NoMatches:
+            pass
+        try:
+            rule_table = self.query_one(RuleTable)
+            if rule_table.display:
+                rule_table._refresh_table()
+        except NoMatches:
+            pass
+
     @on(Input.Changed, "#name-filter")
     async def filter_by_name(self, message: Input.Changed) -> None:
         """Handle name filter changes."""

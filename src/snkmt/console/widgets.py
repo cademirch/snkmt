@@ -77,7 +77,8 @@ class RuleTable(DataTable):
 
     async def on_mount(self) -> None:
         self.last_update = datetime.now(timezone.utc)
-        self.set_interval(0.5, self.update_rules)
+        if self.app.refresh_interval > 0:  # type: ignore
+            self.set_interval(self.app.refresh_interval, self.update_rules)  # type: ignore
 
     @work(exclusive=True)
     async def update_rules(self) -> None:
@@ -209,7 +210,8 @@ class WorkflowTable(DataTable):
 
     async def on_mount(self) -> None:
         self.last_update = datetime.now(timezone.utc)
-        self.set_interval(0.5, self.update_workflows)
+        if self.app.refresh_interval > 0:  # type: ignore
+            self.set_interval(self.app.refresh_interval, self.update_workflows)  # type: ignore
 
     @work(exclusive=True)
     async def update_workflows(self) -> None:

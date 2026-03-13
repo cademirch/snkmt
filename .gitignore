@@ -18,7 +18,9 @@ uv.lock
 .pixi
 # C extensions
 *.so
-
+.claude
+docs/superpowers
+CLAUDE.md
 # Distribution / packaging
 .Python
 build/

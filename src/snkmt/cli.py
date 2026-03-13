@@ -35,14 +35,14 @@ VerboseOption = typer.Option(
 app = typer.Typer(
     name="snkmt",
     help="Monitor Snakemake workflow executions.",
-    add_completion=False,
+    add_completion=True,
     no_args_is_help=True,
 )
 
 db_app = typer.Typer(
     name="db",
     help="Manage snkmt databases.",
-    add_completion=False,
+    add_completion=True,
     no_args_is_help=True,
 )
 app.add_typer(db_app)
@@ -50,7 +50,7 @@ app.add_typer(db_app)
 config_app = typer.Typer(
     name="config",
     help="Manage database configuration.",
-    add_completion=False,
+    add_completion=True,
     no_args_is_help=True,
 )
 db_app.add_typer(
@@ -90,11 +90,17 @@ def launch_console(
         "-d",
         help="Path to a snkmt database. Can be specified multiple times to monitor multiple databases.",
     ),
+    refresh_interval: float = typer.Option(
+        1.0,
+        "--refresh-interval",
+        "-r",
+        help="Interval (in seconds) to refresh the console. Set to 0 to disable auto refresh, can be helpful on NFS setups.",
+    ),
 ):
     """Launch the interactive console UI to monitor workflows."""
     from snkmt.console.app import run_app
 
-    run_app(directory)
+    run_app(refresh_interval=refresh_interval, databases=directory)
 
 
 #### DB APP COMMANDS
