@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.0](https://github.com/cademirch/snkmt/compare/v0.3.0...v0.4.0) (2026-03-13)
+
+
+### Features
+
+* add refresh-interval option and force refresh keybind ([#44](https://github.com/cademirch/snkmt/issues/44)) ([7f8e778](https://github.com/cademirch/snkmt/commit/7f8e7787b14ada9b4b69383e44161d26da89ce38))
+
+
+### Bug Fixes
+
+* fix issue with workflow details not rendering ([#42](https://github.com/cademirch/snkmt/issues/42)) ([bde2e77](https://github.com/cademirch/snkmt/commit/bde2e77bd8f04705723133b8bf86e71f786597c8))
+
 ## [0.3.0](https://github.com/cademirch/snkmt/compare/v0.2.5...v0.3.0) (2026-03-03)
 
 
