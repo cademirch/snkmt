@@ -93,8 +93,8 @@ class OverviewContainer(Horizontal):
                 detail_overview = self.query_one(WorkflowDetailOverview)
                 detail_overview.workflow_data = selected_workflow_data
 
-    @work(exclusive=True)
     @on(WorkflowTable.RowSelected, "#workflow-table")
+    @work(exclusive=True)
     async def handle_workflow_selected(self, event: WorkflowTable.RowSelected) -> None:
         """Handle row selection (clicking or pressing enter)."""
         workflow_id = event.row_key.value
