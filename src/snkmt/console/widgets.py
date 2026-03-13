@@ -408,25 +408,107 @@ class WorkflowTable(DataTable):
 
 
 class WorkflowDetailOverview(Container):
-    workflow_data: reactive[WorkflowDTO | None] = reactive(None, recompose=True)
+    workflow_data: reactive[WorkflowDTO | None] = reactive(None)
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._last_workflow_id: str | None = None
         self.border_title = "Workflow Info"
 
-    def watch_workflow_data(
+    def compose(self) -> ComposeResult:
+        yield Label("Please select a workflow to view details.", id="placeholder-label")
+
+    async def watch_workflow_data(
         self, old_data: WorkflowDTO | None, new_data: WorkflowDTO | None
     ) -> None:
-        """Handle workflow data changes."""
         if new_data is None:
             return
 
         if old_data is None or str(old_data.id) != str(new_data.id):
-            self.log.debug("New workflow selected, recomposing")
             self._last_workflow_id = str(new_data.id)
+            await self._rebuild_table(new_data)
         else:
             self._update_table_cells(old_data, new_data)
+
+    async def _rebuild_table(self, workflow: WorkflowDTO) -> None:
+        await self.query("*").exclude("#workflow-detail-table").remove()
+
+        try:
+            self.query_one("#placeholder-label").remove()
+        except NoMatches:
+            pass
+
+        try:
+            old_table = self.query_one("#workflow-detail-table", DataTable)
+            old_table.clear()
+            table = old_table
+        except NoMatches:
+            table = DataTable(id="workflow-detail-table")
+            table.add_column("Field", width=15)
+            table.add_column("Value")
+            table.cursor_type = "none"
+            table.show_cursor = False
+            table.show_header = False
+            await self.mount(table)
+
+        table.add_row(
+            Text("ID", justify="left", style="bold"),
+            Text(str(workflow.id), justify="left"),
+        )
+        table.add_row(
+            Text("Snakefile", justify="left", style="bold"),
+            Text(
+                workflow.snakefile or "N/A",
+                justify="left",
+                style="dim" if not workflow.snakefile else "",
+            ),
+        )
+        table.add_row(
+            Text("Started At", justify="left", style="bold"),
+            Text(
+                workflow.started_at.strftime("%Y-%m-%d %H:%M:%S")
+                if workflow.started_at
+                else "N/A",
+                justify="left",
+                style="dim" if not workflow.started_at else "",
+            ),
+        )
+        table.add_row(
+            Text("Updated At", justify="left", style="bold"),
+            Text(
+                workflow.updated_at.strftime("%Y-%m-%d %H:%M:%S")
+                if workflow.updated_at
+                else "N/A",
+                justify="left",
+                style="dim" if not workflow.updated_at else "",
+            ),
+        )
+        table.add_row(
+            Text("End Time", justify="left", style="bold"),
+            Text(
+                workflow.end_time.strftime("%Y-%m-%d %H:%M:%S")
+                if workflow.end_time
+                else "N/A",
+                justify="left",
+                style="dim" if not workflow.end_time else "",
+            ),
+        )
+        table.add_row(
+            Text("Status", justify="left", style="bold"),
+            StyledStatus(workflow.status),
+        )
+        table.add_row(
+            Text("Progress", justify="left", style="bold"),
+            StyledProgress(workflow.progress),
+        )
+        table.add_row(
+            Text("Total Jobs", justify="left", style="bold"),
+            Text(str(workflow.total_job_count), justify="left"),
+        )
+        table.add_row(
+            Text("Jobs Finished", justify="left", style="bold"),
+            Text(str(workflow.jobs_finished), justify="left"),
+        )
 
     def _update_table_cells(self, old_data: WorkflowDTO, new_data: WorkflowDTO) -> None:
         """Update individual table cells when workflow data changes."""
@@ -475,80 +557,6 @@ class WorkflowDetailOverview(Container):
 
         except NoMatches as e:
             self.log.debug(f"Error updating cells: {e}")
-
-    def compose(self) -> ComposeResult:
-        if self.workflow_data is None:
-            yield Label("Please select a workflow to view details.")
-        else:
-            workflow = self.workflow_data
-
-            table = DataTable()
-            table.add_column("Field", width=15)
-            table.add_column("Value")
-            table.cursor_type = "none"
-            table.show_cursor = False
-            table.show_header = False
-
-            table.add_row(
-                Text("ID", justify="left", style="bold"),
-                Text(str(workflow.id), justify="left"),
-            )
-            table.add_row(
-                Text("Snakefile", justify="left", style="bold"),
-                Text(
-                    workflow.snakefile or "N/A",
-                    justify="left",
-                    style="dim" if not workflow.snakefile else "",
-                ),
-            )
-            table.add_row(
-                Text("Started At", justify="left", style="bold"),
-                Text(
-                    workflow.started_at.strftime("%Y-%m-%d %H:%M:%S")
-                    if workflow.started_at
-                    else "N/A",
-                    justify="left",
-                    style="dim" if not workflow.started_at else "",
-                ),
-            )
-            table.add_row(
-                Text("Updated At", justify="left", style="bold"),
-                Text(
-                    workflow.updated_at.strftime("%Y-%m-%d %H:%M:%S")
-                    if workflow.updated_at
-                    else "N/A",
-                    justify="left",
-                    style="dim" if not workflow.updated_at else "",
-                ),
-            )
-            table.add_row(
-                Text("End Time", justify="left", style="bold"),
-                Text(
-                    workflow.end_time.strftime("%Y-%m-%d %H:%M:%S")
-                    if workflow.end_time
-                    else "N/A",
-                    justify="left",
-                    style="dim" if not workflow.end_time else "",
-                ),
-            )
-            table.add_row(
-                Text("Status", justify="left", style="bold"),
-                StyledStatus(workflow.status),
-            )
-            table.add_row(
-                Text("Progress", justify="left", style="bold"),
-                StyledProgress(workflow.progress),
-            )
-            table.add_row(
-                Text("Total Jobs", justify="left", style="bold"),
-                Text(str(workflow.total_job_count), justify="left"),
-            )
-            table.add_row(
-                Text("Jobs Finished", justify="left", style="bold"),
-                Text(str(workflow.jobs_finished), justify="left"),
-            )
-
-            yield table
 
 
 class WorkflowErrors(Container):
