@@ -10,7 +10,7 @@ from textual.widgets import (
 from typing import Optional
 from textual.screen import Screen
 from textual.containers import Horizontal, Container
-
+from textual.css.query import NoMatches
 
 from snkmt.version import VERSION
 from snkmt.console.command import SelectDatabaseCommand, DatabaseSourceProvider
@@ -59,6 +59,7 @@ class DashboardScreen(Screen):
     BINDINGS = [
         ("tab", "focus_next", "Next"),
         ("shift+tab", "focus_previous", "Previous"),
+        ("r", "force_refresh", "Refresh"),
     ]
 
     def action_select_database_source(self) -> None:
@@ -74,6 +75,14 @@ class DashboardScreen(Screen):
         super().__init__()
         self.datasource = datasource_url
         self.log.info(f"{datasource_url=}")
+
+    def action_force_refresh(self) -> None:
+        """Force refresh all visible tables."""
+        try:
+            overview = self.query_one(OverviewContainer)
+            overview.force_refresh()
+        except NoMatches:
+            pass
 
     def compose(self) -> ComposeResult:
         try:
@@ -122,8 +131,9 @@ class snkmtApp(App):
         ("shift+tab", "focus_previous", "Previous"),
     ]
 
-    def __init__(self, databases: Optional[list[str]] = None):
+    def __init__(self, refresh_interval: float, databases: Optional[list[str]] = None):
         super().__init__()
+        self.refresh_interval = refresh_interval
         self.databases = databases
         if self.databases is None:
             self.current_source = None  # just use default snkmt db. should probably make this more explicit
@@ -157,7 +167,7 @@ class snkmtApp(App):
         self.screen.focus_previous()
 
 
-def run_app(databases: Optional[list[str]] = None):
+def run_app(refresh_interval: float, databases: Optional[list[str]] = None):
     """Run the Textual app."""
-    app = snkmtApp(databases)
+    app = snkmtApp(refresh_interval, databases)
     app.run()

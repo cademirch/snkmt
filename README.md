@@ -43,6 +43,11 @@ Launch the real-time monitoring interface:
 - `Tab` / `Shift+Tab`: Navigate between interface elements
 - `Enter`: Select workflow rows or log files
 - `Escape`: Close modals/dialogs
+- `r`: Force refresh tables
+- `h`: Hide selected workflow
+- `u`: Unhide all workflows
+- `d`: Delete selected workflow
+- `Ctrl+P`: Open database source selector
 - `q` / `Ctrl+C`: Quit application
 
 ```bash
@@ -51,6 +56,7 @@ snkmt console
 
 Options:
 - `--db-path, -d`: Specify custom database path
+- `--refresh-interval, -r`: Auto-refresh interval in seconds (default: 1.0, set to 0 to disable — useful for NFS or remote filesystems)
 
 ### Database Commands
 
