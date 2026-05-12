@@ -348,8 +348,10 @@ class SQLAlchemyWorkflowRepository(WorkflowRepository):
 
     async def get_job(self, workflow_id: UUID, job_id: int) -> Optional[JobDTO]:
         async with self.async_session() as session:
-            stmt = select(Job).where(
-                and_(Job.id == job_id, Job.workflow_id == workflow_id)
+            stmt = (
+                select(Job)
+                .options(selectinload(Job.files))
+                .where(and_(Job.id == job_id, Job.workflow_id == workflow_id))
             )
             result = await session.execute(stmt)
             job = result.scalar_one_or_none()
