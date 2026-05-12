@@ -1,34 +1,22 @@
 /* ============================================================================
    SNKMT Console CSS - Textual UI Stylesheet
-   
-   Structure Overview:
-   - App Header: Title bar with app name and database path
-   - App Body: Main content area with workflow dashboard
-   - WorkflowDashboard: Horizontal layout with workflows list and detail view
-   - OverviewContainer: Current main view with filters, table, and detail panel
-   
-   Layout Hierarchy:
+
+   Structure:
    App
    ├── AppHeader
-   │   ├── #app-title
-   │   └── #app-db-path  
-   ├── AppBody
-   │   └── OverviewContainer (Horizontal)
-   │       ├── #workflows (.section)
-   │       │   ├── #workflows-filters (.subsection)
-   │       │   │   ├── #filter-layout (Horizontal grid)
-   │       │   │   │   ├── #name-filter
-   │       │   │   │   ├── #date-filter  
-   │       │   │   │   └── #status-filter
-   │       │   │   └── #workflow-counts
-   │       │   └── WorkflowTable
-   │       └── #selected-workflow-detail (.section)
-   │           └── WorkflowDetailOverview (.subsection)
-   └── Footer
-   
-   Modals:
-   - LogFileModal: For displaying log files
-   - CustomSourceModal: For database source input
+   ├── DashboardScreen
+   │   └── WorkflowListView (.section)
+   │       ├── #workflows-filters (.subsection)
+   │       │   ├── #filter-layout
+   │       │   └── #workflow-counts
+   │       └── WorkflowTable
+   └── WorkflowDetailScreen
+       ├── #detail-body (Horizontal)
+       │   ├── #detail-left (Vertical)
+       │   │   ├── #detail-rules (.subsection)
+       │   │   └── #detail-jobs (.subsection)
+       │   └── #detail-tabs (TabbedContent)
+       └── Footer
    ============================================================================ */
 
 /* ============================================================================
@@ -38,88 +26,70 @@ AppHeader {
     color: $text-primary;
     padding: 1 3;
     height: auto;
-    
+
     & > #app-db-path {
         dock: right;
         color: $text-muted;
     }
-    
-    & > #app-header-summary {
-        width: 1fr;
-        content-align: center middle;
-    }
 }
 
 /* ============================================================================
-   APP BODY & MAIN LAYOUT
+   DASHBOARD SCREEN - full-width workflow list
    ============================================================================ */
-AppBody {
+WorkflowListView {
+    height: 1fr;
     padding: 0 2;
 }
 
-OverviewContainer {
-    layout: horizontal;
+WorkflowTable {
     height: 1fr;
 }
 
-/* ============================================================================
-   WORKFLOWS SECTION (Left Panel)
-   ============================================================================ */
-#workflows {
-    width: 1fr;
-    max-width: 80;
-    padding: 0 1;
-}
-
-#workflows > * {
-    width: 100%;
-    max-width: 80;
-    align: left top;
-}
-
-/* Workflow Filters */
 #workflows-filters {
     height: auto;
     layout: vertical;
-    align: center middle;
 }
 
 #filter-layout {
     height: auto;
     layout: grid;
     grid-size: 3;
-    grid-columns: 2fr 1fr 1fr;  /* Name filter wider than date/status */
+    grid-columns: 2fr 1fr 1fr;
     grid-gutter: 1;
 }
 
-#status-filter {
-    width: 1fr;
-    max-height: 8;
-}
-
-/* Workflow Counts Label */
 #workflow-counts {
     width: 100%;
     content-align: center middle;
     color: $text-muted;
-    dock: bottom;
-}
-
-/* Workflow Table */
-WorkflowTable {
-    height: 8fr;
 }
 
 /* ============================================================================
-   WORKFLOW DETAIL SECTION (Right Panel)  
+   DETAIL SCREEN - two-panel layout
    ============================================================================ */
-#selected-workflow-detail {
-    width: 1fr;
-    padding: 0 1;
+#detail-body {
+    height: 1fr;
+    padding: 0 2;
 }
 
-WorkflowDetailOverview {
-    max-height: 11;
+#detail-left {
+    width: 1fr;
+    max-width: 50;
+    height: 1fr;
+}
+
+#detail-rules {
+    height: 2fr;
+}
+
+#detail-jobs {
+    height: 1fr;
+    overflow-y: auto;
+}
+
+#detail-tabs {
+    width: 2fr;
+    height: 1fr;
 }
 
 /* ============================================================================
@@ -153,13 +123,10 @@ WorkflowDetailOverview {
    ============================================================================ */
 #error-container {
     height: 1fr;
-    
-    
 }
 
 .error-text {
     color: $text-error;
-    
 }
 
 /* ============================================================================
@@ -208,34 +175,4 @@ ConfirmDeleteModal {
     content-align: center middle;
     text-align: center;
     color: $text-muted;
-}
-
-/* ============================================================================
-   LEGACY STYLES (May be unused after refactoring)
-   ============================================================================ */
-
-/* Legacy WorkflowDashboard - Check if still used */
-WorkflowDashboard {
-    layout: horizontal;
-    height: 1fr;
-}
-
-/* Legacy workflow overview component */
-WorkflowOverview {
-    max-height: 11;
-}
-
-/* Legacy workflow errors */
-#workflow-errors {
-    overflow-y: auto;
-    scrollbar-gutter: stable;
-}
-
-/* Legacy detail classes */
-.workflow-overview {
-    height: 1fr;
-}
-
-.selected-workflow-detail {
-    height: 3fr;
 }
