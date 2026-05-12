@@ -265,6 +265,7 @@ class SQLAlchemyWorkflowRepository(WorkflowRepository):
         async with self.async_session() as session:
             stmt = (
                 select(Job)
+                .options(selectinload(Job.files))
                 .join(Rule)
                 .where(and_(Rule.workflow_id == workflow_id, Job.rule_id == rule_id))
             )
