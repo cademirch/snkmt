@@ -1,5 +1,6 @@
 import inspect
 from snkmt.console.views.overview import WorkflowListView
+from snkmt.console.widgets import render_progress_bar
 
 
 def test_workflow_list_view_posts_selected_message():
@@ -7,9 +8,6 @@ def test_workflow_list_view_posts_selected_message():
     msg_cls = WorkflowListView.WorkflowSelected
     sig = inspect.signature(msg_cls.__init__)
     assert "workflow_id" in sig.parameters
-
-
-from snkmt.console.widgets import render_progress_bar
 
 
 def test_progress_bar_empty():
