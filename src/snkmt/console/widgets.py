@@ -25,21 +25,25 @@ from snkmt.types.enums import Status, DateFilter
 from snkmt.core.repository import WorkflowRepository
 
 
-class StyledProgress(Text):
-    def __init__(self, progress: float) -> None:
-        progstr = format(progress, ".2%")
+def render_progress_bar(progress: float, width: int = 8) -> Text:
+    """Return a Rich Text progress bar with colour."""
+    progress = max(0.0, min(1.0, progress))
+    filled = round(progress * width)
+    bar = "█" * filled + "░" * (width - filled)
+    pct = f"{progress:.0%}"
+    label = f"{bar} {pct:>4}"
 
-        if progress < 0.2:
-            color = "#fb4b4b"
-        elif progress < 0.4:
-            color = "#ffa879"
-        elif progress < 0.6:
-            color = "#ffc163"
-        elif progress < 0.8:
-            color = "#feff5c"
-        else:
-            color = "#c0ff33"
-        super().__init__(progstr, style=color)
+    if progress < 0.2:
+        color = "#fb4b4b"
+    elif progress < 0.4:
+        color = "#ffa879"
+    elif progress < 0.6:
+        color = "#ffc163"
+    elif progress < 0.8:
+        color = "#feff5c"
+    else:
+        color = "#c0ff33"
+    return Text(label, style=color)
 
 
 class StyledStatus(Text):
@@ -133,7 +137,7 @@ class RuleTable(DataTable):
 
         return [
             rule.name,
-            StyledProgress(progress),
+            render_progress_bar(progress),
             str(rule.total_job_count),
             str(rule.jobs_finished),
             str(rule.job_counts.running),
@@ -287,7 +291,7 @@ class WorkflowTable(DataTable):
             if workflow.started_at
             else "N/A"
         )
-        progress = StyledProgress(workflow.progress)
+        progress = render_progress_bar(workflow.progress)
         return [workflow_id[-6:], status, snakefile, started_at, progress]
 
     def _update_row(self, key: str, row_data: List[TextType]) -> None:
@@ -501,7 +505,7 @@ class WorkflowDetailOverview(Container):
         )
         table.add_row(
             Text("Progress", justify="left", style="bold"),
-            StyledProgress(workflow.progress),
+            render_progress_bar(workflow.progress),
         )
         table.add_row(
             Text("Total Jobs", justify="left", style="bold"),
@@ -540,7 +544,7 @@ class WorkflowDetailOverview(Container):
 
             if old_data.progress != new_data.progress and len(rows) > 6:
                 table.update_cell(
-                    rows[6], value_column_key, StyledProgress(new_data.progress)
+                    rows[6], value_column_key, render_progress_bar(new_data.progress)
                 )
 
             if old_data.total_job_count != new_data.total_job_count and len(rows) > 7:

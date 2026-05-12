@@ -7,3 +7,26 @@ def test_workflow_list_view_posts_selected_message():
     msg_cls = WorkflowListView.WorkflowSelected
     sig = inspect.signature(msg_cls.__init__)
     assert "workflow_id" in sig.parameters
+
+
+from snkmt.console.widgets import render_progress_bar
+
+
+def test_progress_bar_empty():
+    result = render_progress_bar(0.0, width=10)
+    assert result.plain == "░░░░░░░░░░   0%"
+
+
+def test_progress_bar_full():
+    result = render_progress_bar(1.0, width=10)
+    assert result.plain == "██████████ 100%"
+
+
+def test_progress_bar_half():
+    result = render_progress_bar(0.5, width=10)
+    assert result.plain == "█████░░░░░  50%"
+
+
+def test_progress_bar_clamps():
+    result = render_progress_bar(1.5, width=10)
+    assert result.plain == "██████████ 100%"
