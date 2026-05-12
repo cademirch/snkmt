@@ -28,3 +28,8 @@ def test_progress_bar_half():
 def test_progress_bar_clamps():
     result = render_progress_bar(1.5, width=10)
     assert result.plain == "██████████ 100%"
+
+
+def test_workflow_detail_screen_importable():
+    from snkmt.console.views.detail import WorkflowDetailScreen
+    assert WorkflowDetailScreen is not None

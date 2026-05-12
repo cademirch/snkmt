@@ -634,6 +634,79 @@ class WorkflowErrors(Container):
             await self.mount(collapsible)
 
 
+class JobTable(DataTable):
+    """Shows jobs for a selected rule. Set workflow_id + rule_id to load."""
+
+    workflow_id: reactive[UUID | None] = reactive(None)
+    rule_id: reactive[int | None] = reactive(None, layout=True)
+
+    def __init__(self, repo: WorkflowRepository, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.repo = repo
+        self._column_keys = self.add_columns("Job", "Status", "Duration", "Wildcards")
+        self.cursor_type = "row"
+        self.cursor_foreground_priority = "renderable"
+
+    def watch_rule_id(self) -> None:
+        if self.rule_id is not None and self.workflow_id is not None:
+            self._refresh_jobs()
+
+    @work(exclusive=True)
+    async def _refresh_jobs(self) -> None:
+        if self.workflow_id is None or self.rule_id is None:
+            return
+        self.clear()
+        jobs = await self.repo.list_rule_jobs(self.workflow_id, self.rule_id)
+        for job in jobs:
+            duration = f"{job.duration:.0f}s" if job.duration is not None else "running"
+            wildcards = ", ".join(f"{k}={v}" for k, v in (job.wildcards or {}).items()) or "—"
+            self.add_row(
+                str(job.id),
+                StyledStatus(job.status),
+                duration,
+                wildcards,
+                key=str(job.id),
+            )
+
+
+class ResourcesPanel(Container):
+    """Displays job resources dict, threads, duration, and shellcmd."""
+
+    job_data: reactive[JobDTO | None] = reactive(None)
+
+    def compose(self) -> ComposeResult:
+        yield Label("Select a job to view resources.", id="resources-placeholder")
+
+    async def watch_job_data(self, job: JobDTO | None) -> None:
+        await self.query("*").remove()
+        if job is None:
+            await self.mount(Label("Select a job to view resources.", id="resources-placeholder"))
+            return
+
+        table = DataTable(id="resources-table")
+        table.add_column("Field", width=14)
+        table.add_column("Value")
+        table.cursor_type = "none"
+        table.show_cursor = False
+        table.show_header = False
+        await self.mount(table)
+
+        table.add_row(Text("threads", style="bold"), str(job.threads))
+
+        duration_str = f"{job.duration:.1f}s" if job.duration is not None else "running"
+        table.add_row(Text("duration", style="bold"), duration_str)
+
+        for key, val in (job.resources or {}).items():
+            table.add_row(Text(key, style="bold"), str(val))
+
+        if job.shellcmd:
+            table.add_row(Text("shellcmd", style="bold"), job.shellcmd)
+
+        if job.wildcards:
+            for k, v in job.wildcards.items():
+                table.add_row(Text(f"wildcard:{k}", style="bold"), str(v))
+
+
 class ConfirmDeleteModal(ModalScreen[bool]):
     """Modal to confirm workflow deletion."""
 
