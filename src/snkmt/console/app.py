@@ -51,10 +51,6 @@ class AppHeader(Horizontal):
             yield Label(f"Connected to: {self.datasource}", id="app-db-path")
 
 
-class AppBody(Horizontal):
-    """The body of the app"""
-
-
 class DashboardScreen(Screen):
     COMMANDS = {SelectDatabaseCommand}
     BINDINGS = [
@@ -166,7 +162,7 @@ class snkmtApp(App):
         self.screen.focus_previous()
 
 
-def run_app(refresh_interval: float, databases: Optional[list[str]] = None):
+def run_app(refresh_interval: float, databases: Optional[list[str]] = None) -> None:
     """Run the Textual app."""
     app = snkmtApp(refresh_interval, databases)
     app.run()

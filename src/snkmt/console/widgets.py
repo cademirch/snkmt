@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Any, List, Optional, Union
 from uuid import UUID
 from textual import work
 from textual.reactive import reactive
@@ -63,7 +63,7 @@ class StyledStatus(Text):
 class RuleTable(DataTable):
     workflow_id: reactive[UUID | None] = reactive(None, layout=True)
 
-    def __init__(self, repo: WorkflowRepository, *args, **kwargs):
+    def __init__(self, repo: WorkflowRepository, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.repo = repo
         self.last_update: Optional[datetime] = None
@@ -198,7 +198,7 @@ class WorkflowTable(DataTable):
             self.workflows = workflows
             super().__init__()
 
-    def __init__(self, repo: WorkflowRepository, *args, **kwargs):
+    def __init__(self, repo: WorkflowRepository, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
         self.repo = repo
@@ -347,10 +347,10 @@ class WorkflowTable(DataTable):
 
                 self.app.push_screen(
                     ConfirmDeleteModal(workflow_id, workflow_name),
-                    callback=lambda confirmed: self._handle_delete_confirmed(
+                    callback=lambda confirmed: self._handle_delete_confirmed(  # type: ignore[arg-type]
                         confirmed, row_key, workflow_id
-                    ),  # type: ignore
-                )  # type: ignore
+                    ),
+                )
         except CellDoesNotExist as e:
             self.log.debug(f"Tried to delete workflow but failed: {e}")
 
@@ -416,7 +416,7 @@ class WorkflowTable(DataTable):
 class WorkflowDetailOverview(Container):
     workflow_data: reactive[WorkflowDTO | None] = reactive(None)
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self._last_workflow_id: str | None = None
         self.border_title = "Workflow Info"
@@ -573,7 +573,7 @@ class WorkflowDetailOverview(Container):
 class WorkflowErrors(Container):
     workflow_id: reactive[UUID | None] = reactive(None, recompose=True)
 
-    def __init__(self, repo: WorkflowRepository, *args, **kwargs):
+    def __init__(self, repo: WorkflowRepository, *args: Any, **kwargs: Any) -> None:
         self.repo = repo
         super().__init__(*args, **kwargs)
 
@@ -645,7 +645,7 @@ class JobTable(DataTable):
     workflow_id: reactive[UUID | None] = reactive(None)
     rule_id: reactive[int | None] = reactive(None, layout=True)
 
-    def __init__(self, repo: WorkflowRepository, *args, **kwargs):
+    def __init__(self, repo: WorkflowRepository, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.repo = repo
         self._column_keys = self.add_columns("Job", "Status", "Duration", "Wildcards")
@@ -688,7 +688,7 @@ class ResourcesPanel(Container):
             await self.mount(Label("Select a job to view resources.", id="resources-placeholder"))
             return
 
-        table = DataTable(id="resources-table")
+        table: DataTable[Any] = DataTable(id="resources-table")
         table.add_column("Field", width=14)
         table.add_column("Value")
         table.cursor_type = "none"
@@ -720,7 +720,7 @@ class ConfirmDeleteModal(ModalScreen[bool]):
         ("enter", "confirm", "Confirm Delete"),
     ]
 
-    def __init__(self, workflow_id: str, workflow_name: str, *args, **kwargs):
+    def __init__(self, workflow_id: str, workflow_name: str, *args: Any, **kwargs: Any) -> None:
         self.workflow_id = workflow_id
         self.workflow_name = workflow_name
         super().__init__(*args, **kwargs)
@@ -756,7 +756,7 @@ class LogFileModal(ModalScreen):
 
     BINDINGS = [("escape", "app.pop_screen", "Pop screen")]
 
-    def __init__(self, log_file: Path, *args, **kwargs):
+    def __init__(self, log_file: Path, *args: Any, **kwargs: Any) -> None:
         self.log_file = log_file
         super().__init__(*args, **kwargs)
 

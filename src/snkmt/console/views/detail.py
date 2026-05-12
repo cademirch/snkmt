@@ -17,7 +17,7 @@ from snkmt.console.widgets import (
     WorkflowErrors,
 )
 from snkmt.core.repository import WorkflowRepository
-from snkmt.types.dto import WorkflowDTO
+from snkmt.types.dto import JobDTO, WorkflowDTO
 
 
 class WorkflowDetailScreen(Screen):
@@ -124,7 +124,7 @@ class WorkflowDetailScreen(Screen):
         if rule_name is None:
             return
 
-        rules = await self.repo.list_rules(workflow_id=self.workflow_id)
+        rules = await self.repo.list_rules(workflow_id=self.workflow_id, status=None)
         rule = next((r for r in rules if r.name == rule_name), None)
         if rule is None:
             return
@@ -158,7 +158,7 @@ class WorkflowDetailScreen(Screen):
 
         await self._update_logs_tab(job)
 
-    async def _update_logs_tab(self, job: WorkflowDTO) -> None:
+    async def _update_logs_tab(self, job: JobDTO) -> None:
         try:
             logs_pane = self.query_one("#tab-logs")
             await logs_pane.query("*").exclude("#logs-placeholder").remove()
