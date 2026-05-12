@@ -27,6 +27,7 @@ class WorkflowDetailScreen(Screen):
         ("escape", "app.pop_screen", "Back"),
         ("tab", "focus_next", "Next"),
         ("shift+tab", "focus_previous", "Previous"),
+        ("r", "force_refresh", "Refresh"),
     ]
 
     def __init__(
@@ -40,6 +41,19 @@ class WorkflowDetailScreen(Screen):
         self.workflow_id = UUID(workflow_id)
         self.datasource = datasource
         self._workflow_data: Optional[WorkflowDTO] = None
+
+    def action_force_refresh(self) -> None:
+        try:
+            self.query_one("#detail-rule-table", RuleTable)._refresh_table()
+        except NoMatches:
+            pass
+        try:
+            job_table = self.query_one("#detail-job-table", JobTable)
+            if job_table.display:
+                job_table._refresh_jobs()
+        except NoMatches:
+            pass
+        self._load_workflow()
 
     def compose(self) -> ComposeResult:
         with Horizontal(id="detail-body"):
