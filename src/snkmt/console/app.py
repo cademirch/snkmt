@@ -16,7 +16,7 @@ from textual import on
 from snkmt.version import VERSION
 from snkmt.console.command import SelectDatabaseCommand, DatabaseSourceProvider
 from snkmt.console.views.overview import WorkflowListView
-from snkmt.console.widgets import LogFileModal, WorkflowTable
+from snkmt.console.widgets import LogFileModal
 from snkmt.core.db.session import AsyncDatabase
 
 
@@ -69,7 +69,7 @@ class DashboardScreen(Screen):
 
     def action_force_refresh(self) -> None:
         try:
-            self.query_one(WorkflowListView).query_one(WorkflowTable)._refresh_table()
+            self.query_one(WorkflowListView).force_refresh()
         except NoMatches:
             pass
 
@@ -115,8 +115,8 @@ class DashboardScreen(Screen):
             db = AsyncDatabase(self.datasource, create_db=False)
             repo = db.get_workflow_repository()
             self.app.push_screen(WorkflowDetailScreen(repo, message.workflow_id, self.datasource))
-        except Exception:
-            pass
+        except Exception as e:
+            self.app.notify(f"Could not open workflow: {e}", severity="error")
 
 
 class snkmtApp(App):

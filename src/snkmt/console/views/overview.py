@@ -1,6 +1,5 @@
 from textual.app import ComposeResult
 from textual.containers import Container, Horizontal
-from textual.reactive import reactive
 from textual.widgets import Input, Label, Select
 from textual import on
 from textual.css.query import NoMatches
@@ -21,11 +20,17 @@ class WorkflowListView(Container):
             super().__init__()
 
     def __init__(self, repo: WorkflowRepository) -> None:
-        super().__init__()
+        super().__init__(classes="section")
         self.repo = repo
 
+    def force_refresh(self) -> None:
+        try:
+            self.query_one(WorkflowTable)._refresh_table()
+        except NoMatches:
+            pass
+
     def compose(self) -> ComposeResult:
-        with Container(id="workflows-filters") as filters:
+        with Container(classes="subsection", id="workflows-filters") as filters:
             filters.border_title = "Filters"
             with Horizontal(id="filter-layout"):
                 yield Input(placeholder="Filter by name...", id="name-filter", compact=True)
