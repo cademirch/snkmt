@@ -6,7 +6,8 @@ from textual.app import ComposeResult
 from textual.containers import Container, Horizontal, Vertical
 from textual.css.query import NoMatches
 from textual.screen import Screen
-from textual.widgets import Footer, Label, TabbedContent, TabPane
+from pathlib import Path
+from textual.widgets import Footer, Label, ListItem, ListView, Static, TabbedContent, TabPane
 
 from snkmt.console.widgets import (
     JobTable,
@@ -143,10 +144,7 @@ class WorkflowDetailScreen(Screen):
 
         await self._update_logs_tab(job)
 
-    async def _update_logs_tab(self, job) -> None:  # type: ignore[no-untyped-def]
-        from pathlib import Path
-        from textual.widgets import ListView, ListItem, Static
-
+    async def _update_logs_tab(self, job: WorkflowDTO) -> None:
         try:
             logs_pane = self.query_one("#tab-logs")
             await logs_pane.query("*").exclude("#logs-placeholder").remove()
