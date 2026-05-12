@@ -515,6 +515,11 @@ class WorkflowDetailOverview(Container):
             Text("Jobs Finished", justify="left", style="bold"),
             Text(str(workflow.jobs_finished), justify="left"),
         )
+        if workflow.command_line:
+            table.add_row(
+                Text("Command", justify="left", style="bold"),
+                Text(workflow.command_line, justify="left"),
+            )
 
     def _update_table_cells(self, old_data: WorkflowDTO, new_data: WorkflowDTO) -> None:
         """Update individual table cells when workflow data changes."""
