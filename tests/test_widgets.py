@@ -11,23 +11,23 @@ def test_workflow_list_view_posts_selected_message():
 
 
 def test_progress_bar_empty():
-    result = render_progress_bar(0.0, width=10)
-    assert result.plain == "░░░░░░░░░░   0%"
+    result = render_progress_bar(0.0)
+    assert result.plain == "0%"
 
 
 def test_progress_bar_full():
-    result = render_progress_bar(1.0, width=10)
-    assert result.plain == "██████████ 100%"
+    result = render_progress_bar(1.0)
+    assert result.plain == "100%"
 
 
 def test_progress_bar_half():
-    result = render_progress_bar(0.5, width=10)
-    assert result.plain == "█████░░░░░  50%"
+    result = render_progress_bar(0.5)
+    assert result.plain == "50%"
 
 
 def test_progress_bar_clamps():
-    result = render_progress_bar(1.5, width=10)
-    assert result.plain == "██████████ 100%"
+    result = render_progress_bar(1.5)
+    assert result.plain == "100%"
 
 
 def test_workflow_detail_screen_importable():

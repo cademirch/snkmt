@@ -26,12 +26,8 @@ from snkmt.core.repository import WorkflowRepository
 
 
 def render_progress_bar(progress: float, width: int = 8) -> Text:
-    """Return a Rich Text progress bar with colour."""
     progress = max(0.0, min(1.0, progress))
-    filled = round(progress * width)
-    bar = "█" * filled + "░" * (width - filled)
     pct = f"{progress:.0%}"
-    label = f"{bar} {pct:>4}"
 
     if progress < 0.2:
         color = "#fb4b4b"
@@ -43,7 +39,7 @@ def render_progress_bar(progress: float, width: int = 8) -> Text:
         color = "#feff5c"
     else:
         color = "#c0ff33"
-    return Text(label, style=color)
+    return Text(pct, style=color)
 
 
 class StyledStatus(Text):

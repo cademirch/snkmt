@@ -7,7 +7,7 @@ from textual.containers import Container, Horizontal, Vertical
 from textual.css.query import NoMatches
 from textual.screen import Screen
 from pathlib import Path
-from textual.widgets import Footer, Label, ListItem, ListView, Static, TabbedContent, TabPane
+from textual.widgets import Footer, Label, ListView, ListItem, Static, TabbedContent, TabPane, Log
 
 from snkmt.console.widgets import (
     JobTable,
@@ -80,7 +80,7 @@ class WorkflowDetailScreen(Screen):
                     yield overview
 
                 with TabPane("Logs", id="tab-logs"):
-                    yield Label("Select a job on the left to view its log files.", id="logs-placeholder")
+                    pass
 
                 with TabPane("Resources", id="tab-resources"):
                     yield ResourcesPanel(id="detail-resources")
@@ -161,26 +161,48 @@ class WorkflowDetailScreen(Screen):
     async def _update_logs_tab(self, job: JobDTO) -> None:
         try:
             logs_pane = self.query_one("#tab-logs")
-            await logs_pane.query("*").exclude("#logs-placeholder").remove()
+            await logs_pane.query("*").remove()
 
             log_files = job.log_files
             if not log_files:
-                try:
-                    self.query_one("#logs-placeholder").display = True
-                except NoMatches:
-                    await logs_pane.mount(Label("No log files for this job.", id="logs-placeholder"))
+                await logs_pane.mount(Label("No log files for this job.", id="logs-placeholder"))
                 return
 
-            try:
-                self.query_one("#logs-placeholder").display = False
-            except NoMatches:
-                pass
+            if len(log_files) > 1:
+                items = [
+                    ListItem(Static(str(Path(lf.path).name)), name=str(lf.path))
+                    for lf in log_files
+                ]
+                list_view = ListView(*items, id="logs-file-list")
+                await logs_pane.mount(list_view)
 
-            items = [
-                ListItem(Static(str(Path(lf.path).name)), name=str(lf.path))
-                for lf in log_files
-            ]
-            list_view = ListView(*items)
-            await logs_pane.mount(list_view)
+            await self._show_log_file(logs_pane, str(log_files[0].path))
+        except NoMatches:
+            pass
+
+    async def _show_log_file(self, logs_pane: TabPane, path: str) -> None:
+        try:
+            logs_pane.query_one("#log-content").remove()
+        except NoMatches:
+            pass
+
+        log_widget = Log(id="log-content", highlight=False)
+        await logs_pane.mount(log_widget)
+
+        try:
+            content = Path(path).read_text(errors="replace")
+            for line in content.splitlines():
+                log_widget.write_line(line)
+        except OSError:
+            log_widget.write_line(f"Could not read: {path}")
+
+    @on(ListView.Selected, "#logs-file-list")
+    async def handle_log_file_selected(self, event: ListView.Selected) -> None:
+        path = event.item.name
+        if path is None:
+            return
+        try:
+            logs_pane = self.query_one("#tab-logs")
+            await self._show_log_file(logs_pane, path)
         except NoMatches:
             pass
