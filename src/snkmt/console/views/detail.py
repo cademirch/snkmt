@@ -160,7 +160,7 @@ class WorkflowDetailScreen(Screen):
 
     async def _update_logs_tab(self, job: JobDTO) -> None:
         try:
-            logs_pane = self.query_one("#tab-logs")
+            logs_pane = self.query_one("#tab-logs", TabPane)
             await logs_pane.query("*").remove()
 
             log_files = job.log_files
@@ -202,7 +202,7 @@ class WorkflowDetailScreen(Screen):
         if path is None:
             return
         try:
-            logs_pane = self.query_one("#tab-logs")
+            logs_pane = self.query_one("#tab-logs", TabPane)
             await self._show_log_file(logs_pane, path)
         except NoMatches:
             pass
