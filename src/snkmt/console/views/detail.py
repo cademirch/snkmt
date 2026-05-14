@@ -11,6 +11,7 @@ from textual.widgets import Footer, Label, ListView, ListItem, Static, TabbedCon
 
 from snkmt.console.widgets import (
     JobTable,
+    LogFileModal,
     ResourcesPanel,
     RuleTable,
     WorkflowDetailOverview,
@@ -28,6 +29,7 @@ class WorkflowDetailScreen(Screen):
         ("tab", "focus_next", "Next"),
         ("shift+tab", "focus_previous", "Previous"),
         ("r", "force_refresh", "Refresh"),
+        ("m", "open_log_modal", "Expand log"),
     ]
 
     def __init__(
@@ -41,6 +43,7 @@ class WorkflowDetailScreen(Screen):
         self.workflow_id = UUID(workflow_id)
         self.datasource = datasource
         self._workflow_data: Optional[WorkflowDTO] = None
+        self._current_log_path: Optional[str] = None
 
     def action_force_refresh(self) -> None:
         try:
@@ -54,6 +57,11 @@ class WorkflowDetailScreen(Screen):
         except NoMatches:
             pass
         self._load_workflow()
+
+    def action_open_log_modal(self) -> None:
+        if self._current_log_path is None:
+            return
+        self.app.push_screen(LogFileModal(Path(self._current_log_path)))
 
     def compose(self) -> ComposeResult:
         with Horizontal(id="detail-body"):
@@ -162,6 +170,7 @@ class WorkflowDetailScreen(Screen):
         try:
             logs_pane = self.query_one("#tab-logs", TabPane)
             await logs_pane.query("*").remove()
+            self._current_log_path = None
 
             log_files = job.log_files
             if not log_files:
@@ -181,6 +190,7 @@ class WorkflowDetailScreen(Screen):
             pass
 
     async def _show_log_file(self, logs_pane: TabPane, path: str) -> None:
+        self._current_log_path = path
         try:
             logs_pane.query_one("#log-content").remove()
         except NoMatches:
