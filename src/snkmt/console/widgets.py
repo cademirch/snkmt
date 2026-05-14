@@ -671,7 +671,7 @@ class JobTable(DataTable):
 
 
 class ResourcesPanel(Container):
-    """Displays job resources dict, threads, duration, and shellcmd."""
+    """Displays job threads, duration, requested resources, shellcmd, and wildcards."""
 
     job_data: reactive[JobDTO | None] = reactive(None)
 
@@ -697,8 +697,10 @@ class ResourcesPanel(Container):
         duration_str = f"{job.duration:.1f}s" if job.duration is not None else "running"
         table.add_row(Text("duration", style="bold"), duration_str)
 
-        for key, val in (job.resources or {}).items():
-            table.add_row(Text(key, style="bold"), str(val))
+        if job.resources:
+            table.add_row(Text("── requested ──", style="dim"), Text("──────────────", style="dim"))
+            for key, val in job.resources.items():
+                table.add_row(Text(key, style="bold"), str(val))
 
         if job.shellcmd:
             table.add_row(Text("shellcmd", style="bold"), job.shellcmd)
