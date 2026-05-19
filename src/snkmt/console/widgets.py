@@ -660,7 +660,9 @@ class JobTable(DataTable):
         jobs = await self.repo.list_rule_jobs(self.workflow_id, self.rule_id)
         for job in jobs:
             duration = f"{job.duration:.0f}s" if job.duration is not None else "running"
-            wildcards = ", ".join(f"{k}={v}" for k, v in (job.wildcards or {}).items()) or "—"
+            wildcards = (
+                ", ".join(f"{k}={v}" for k, v in (job.wildcards or {}).items()) or "—"
+            )
             self.add_row(
                 str(job.id),
                 StyledStatus(job.status),
@@ -681,7 +683,9 @@ class ResourcesPanel(Container):
     async def watch_job_data(self, job: JobDTO | None) -> None:
         await self.query("*").remove()
         if job is None:
-            await self.mount(Label("Select a job to view resources.", id="resources-placeholder"))
+            await self.mount(
+                Label("Select a job to view resources.", id="resources-placeholder")
+            )
             return
 
         table: DataTable[Any] = DataTable(id="resources-table")
@@ -698,7 +702,10 @@ class ResourcesPanel(Container):
         table.add_row(Text("duration", style="bold"), duration_str)
 
         if job.resources:
-            table.add_row(Text("── requested ──", style="dim"), Text("──────────────", style="dim"))
+            table.add_row(
+                Text("── requested ──", style="dim"),
+                Text("──────────────", style="dim"),
+            )
             for key, val in job.resources.items():
                 table.add_row(Text(key, style="bold"), str(val))
 
@@ -718,7 +725,9 @@ class ConfirmDeleteModal(ModalScreen[bool]):
         ("enter", "confirm", "Confirm Delete"),
     ]
 
-    def __init__(self, workflow_id: str, workflow_name: str, *args: Any, **kwargs: Any) -> None:
+    def __init__(
+        self, workflow_id: str, workflow_name: str, *args: Any, **kwargs: Any
+    ) -> None:
         self.workflow_id = workflow_id
         self.workflow_name = workflow_name
         super().__init__(*args, **kwargs)

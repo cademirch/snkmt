@@ -33,7 +33,9 @@ class WorkflowListView(Container):
         with Container(classes="subsection", id="workflows-filters") as filters:
             filters.border_title = "Filters"
             with Horizontal(id="filter-layout"):
-                yield Input(placeholder="Filter by name...", id="name-filter", compact=True)
+                yield Input(
+                    placeholder="Filter by name...", id="name-filter", compact=True
+                )
                 yield Select(
                     [
                         ("Any time", DateFilter.ANY),
@@ -75,10 +77,14 @@ class WorkflowListView(Container):
     @on(Select.Changed, "#status-filter")
     async def filter_by_status(self, message: Select.Changed) -> None:
         if message.value is not None:
-            self.query_one(WorkflowTable).status_filter = cast(Union[str, Status], message.value)
+            self.query_one(WorkflowTable).status_filter = cast(
+                Union[str, Status], message.value
+            )
 
     @on(WorkflowTable.TableRefreshed)
-    async def handle_table_refreshed(self, message: WorkflowTable.TableRefreshed) -> None:
+    async def handle_table_refreshed(
+        self, message: WorkflowTable.TableRefreshed
+    ) -> None:
         try:
             label = self.query_one("#workflow-counts", Label)
             filtered_out = message.total_count - message.filtered_count

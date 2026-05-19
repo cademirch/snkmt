@@ -343,7 +343,7 @@ class SQLAlchemyWorkflowRepository(WorkflowRepository):
             )
             session.add(new_job)
             await session.commit()
-            await session.refresh(new_job)
+            await session.refresh(new_job, ["files"])
             return self._job_to_dto(new_job)
 
     async def get_job(self, workflow_id: UUID, job_id: int) -> Optional[JobDTO]:
@@ -361,11 +361,15 @@ class SQLAlchemyWorkflowRepository(WorkflowRepository):
         self, workflow_id: UUID, rule_id: int, job_id: int, update: UpdateJobDTO
     ) -> Optional[JobDTO]:
         async with self.async_session() as session:
-            stmt = select(Job).where(
-                and_(
-                    Job.id == job_id,
-                    Job.workflow_id == workflow_id,
-                    Job.rule_id == rule_id,
+            stmt = (
+                select(Job)
+                .options(selectinload(Job.files))
+                .where(
+                    and_(
+                        Job.id == job_id,
+                        Job.workflow_id == workflow_id,
+                        Job.rule_id == rule_id,
+                    )
                 )
             )
             result = await session.execute(stmt)

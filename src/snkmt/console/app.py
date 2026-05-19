@@ -85,13 +85,16 @@ class DashboardScreen(Screen):
             yield WorkflowListView(repo)
         except Exception as e:
             from snkmt.core.db.session import DatabaseNotFoundError
+
             error_container = Container(classes="section", id="error-container")
             error_container.border_title = "Database Connection Error"
             with error_container:
                 if isinstance(e, DatabaseNotFoundError):
                     error_type = "Database Not Found"
                     error_details = str(e)
-                    suggestion = "\n Try selecting a different database source with Ctrl+P"
+                    suggestion = (
+                        "\n Try selecting a different database source with Ctrl+P"
+                    )
                 else:
                     error_type = f"{type(e).__name__}"
                     error_details = str(e)
@@ -105,12 +108,17 @@ class DashboardScreen(Screen):
         yield Footer(id="footer")
 
     @on(WorkflowListView.WorkflowSelected)
-    def handle_workflow_selected(self, message: WorkflowListView.WorkflowSelected) -> None:
+    def handle_workflow_selected(
+        self, message: WorkflowListView.WorkflowSelected
+    ) -> None:
         from snkmt.console.views.detail import WorkflowDetailScreen
+
         try:
             db = AsyncDatabase(self.datasource, create_db=False)
             repo = db.get_workflow_repository()
-            self.app.push_screen(WorkflowDetailScreen(repo, message.workflow_id, self.datasource))
+            self.app.push_screen(
+                WorkflowDetailScreen(repo, message.workflow_id, self.datasource)
+            )
         except Exception as e:
             self.app.notify(f"Could not open workflow: {e}", severity="error")
 

@@ -7,7 +7,16 @@ from textual.containers import Container, Horizontal, Vertical
 from textual.css.query import NoMatches
 from textual.screen import Screen
 from pathlib import Path
-from textual.widgets import Footer, Label, ListView, ListItem, Static, TabbedContent, TabPane, Log
+from textual.widgets import (
+    Footer,
+    Label,
+    ListView,
+    ListItem,
+    Static,
+    TabbedContent,
+    TabPane,
+    Log,
+)
 
 from snkmt.console.widgets import (
     JobTable,
@@ -174,7 +183,9 @@ class WorkflowDetailScreen(Screen):
 
             log_files = job.log_files
             if not log_files:
-                await logs_pane.mount(Label("No log files for this job.", id="logs-placeholder"))
+                await logs_pane.mount(
+                    Label("No log files for this job.", id="logs-placeholder")
+                )
                 return
 
             if len(log_files) > 1:
@@ -192,7 +203,7 @@ class WorkflowDetailScreen(Screen):
     async def _show_log_file(self, logs_pane: TabPane, path: str) -> None:
         self._current_log_path = path
         try:
-            logs_pane.query_one("#log-content").remove()
+            await logs_pane.query_one("#log-content").remove()
         except NoMatches:
             pass
 
