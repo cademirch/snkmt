@@ -19,7 +19,7 @@ from textual.widgets.data_table import RowKey, CellDoesNotExist, DuplicateKey
 from datetime import datetime, timezone
 from rich.text import TextType, Text
 from textual.app import ComposeResult
-from textual.containers import Container
+from textual.containers import Container, Horizontal, Vertical
 from snkmt.types.dto import JobDTO, RuleDTO, WorkflowDTO
 from snkmt.types.enums import Status, DateFilter
 from snkmt.core.repository import WorkflowRepository
@@ -418,7 +418,28 @@ class WorkflowDetailOverview(Container):
         self.border_title = "Workflow Info"
 
     def compose(self) -> ComposeResult:
-        yield Label("Please select a workflow to view details.", id="placeholder-label")
+        with Horizontal(id="overview-header-layout"):
+            with Vertical(classes="overview-card", id="card-info"):
+                yield Label("[bold]Workflow ID[/bold]", classes="card-label")
+                yield Label("...", id="overview-id", classes="card-value")
+                yield Label("[bold]Snakefile[/bold]", classes="card-label")
+                yield Label("...", id="overview-snakefile", classes="card-value")
+
+            with Vertical(classes="overview-card", id="card-status"):
+                yield Label("[bold]Status[/bold]", classes="card-label")
+                yield Label("...", id="overview-status", classes="card-value")
+                yield Label("[bold]Progress[/bold]", classes="card-label")
+                yield Label("...", id="overview-progress", classes="card-value")
+
+            with Vertical(classes="overview-card", id="card-jobs"):
+                yield Label("[bold]Jobs Finished[/bold]", classes="card-label")
+                yield Label("...", id="overview-jobs-finished", classes="card-value")
+                yield Label("[bold]Total Jobs[/bold]", classes="card-label")
+                yield Label("...", id="overview-jobs-total", classes="card-value")
+
+            with Vertical(classes="overview-card", id="card-command"):
+                yield Label("[bold]Command Line[/bold]", classes="card-label")
+                yield Label("...", id="overview-command", classes="card-value")
 
     async def watch_workflow_data(
         self, old_data: WorkflowDTO | None, new_data: WorkflowDTO | None
@@ -426,144 +447,28 @@ class WorkflowDetailOverview(Container):
         if new_data is None:
             return
 
-        if old_data is None or str(old_data.id) != str(new_data.id):
-            self._last_workflow_id = str(new_data.id)
-            await self._rebuild_table(new_data)
-        else:
-            self._update_table_cells(old_data, new_data)
-
-    async def _rebuild_table(self, workflow: WorkflowDTO) -> None:
-        await self.query("*").exclude("#workflow-detail-table").remove()
-
         try:
-            self.query_one("#placeholder-label").remove()
+            self.query_one("#overview-id", Label).update(str(new_data.id))
+            self.query_one("#overview-snakefile", Label).update(
+                Path(new_data.snakefile).name if new_data.snakefile else "N/A"
+            )
+            self.query_one("#overview-status", Label).update(
+                StyledStatus(new_data.status)
+            )
+            self.query_one("#overview-progress", Label).update(
+                render_progress_bar(new_data.progress)
+            )
+            self.query_one("#overview-jobs-finished", Label).update(
+                str(new_data.jobs_finished)
+            )
+            self.query_one("#overview-jobs-total", Label).update(
+                str(new_data.total_job_count)
+            )
+            self.query_one("#overview-command", Label).update(
+                new_data.command_line or "N/A"
+            )
         except NoMatches:
             pass
-
-        try:
-            old_table = self.query_one("#workflow-detail-table", DataTable)
-            old_table.clear()
-            table = old_table
-        except NoMatches:
-            table = DataTable(id="workflow-detail-table")
-            table.add_column("Field", width=15)
-            table.add_column("Value")
-            table.cursor_type = "none"
-            table.show_cursor = False
-            table.show_header = False
-            await self.mount(table)
-
-        table.add_row(
-            Text("ID", justify="left", style="bold"),
-            Text(str(workflow.id), justify="left"),
-        )
-        table.add_row(
-            Text("Snakefile", justify="left", style="bold"),
-            Text(
-                workflow.snakefile or "N/A",
-                justify="left",
-                style="dim" if not workflow.snakefile else "",
-            ),
-        )
-        table.add_row(
-            Text("Started At", justify="left", style="bold"),
-            Text(
-                workflow.started_at.strftime("%Y-%m-%d %H:%M:%S")
-                if workflow.started_at
-                else "N/A",
-                justify="left",
-                style="dim" if not workflow.started_at else "",
-            ),
-        )
-        table.add_row(
-            Text("Updated At", justify="left", style="bold"),
-            Text(
-                workflow.updated_at.strftime("%Y-%m-%d %H:%M:%S")
-                if workflow.updated_at
-                else "N/A",
-                justify="left",
-                style="dim" if not workflow.updated_at else "",
-            ),
-        )
-        table.add_row(
-            Text("End Time", justify="left", style="bold"),
-            Text(
-                workflow.end_time.strftime("%Y-%m-%d %H:%M:%S")
-                if workflow.end_time
-                else "N/A",
-                justify="left",
-                style="dim" if not workflow.end_time else "",
-            ),
-        )
-        table.add_row(
-            Text("Status", justify="left", style="bold"),
-            StyledStatus(workflow.status),
-        )
-        table.add_row(
-            Text("Progress", justify="left", style="bold"),
-            render_progress_bar(workflow.progress),
-        )
-        table.add_row(
-            Text("Total Jobs", justify="left", style="bold"),
-            Text(str(workflow.total_job_count), justify="left"),
-        )
-        table.add_row(
-            Text("Jobs Finished", justify="left", style="bold"),
-            Text(str(workflow.jobs_finished), justify="left"),
-        )
-        if workflow.command_line:
-            table.add_row(
-                Text("Command", justify="left", style="bold"),
-                Text(workflow.command_line, justify="left"),
-            )
-
-    def _update_table_cells(self, old_data: WorkflowDTO, new_data: WorkflowDTO) -> None:
-        """Update individual table cells when workflow data changes."""
-        try:
-            table = self.query_one(DataTable)
-            rows = list(table.rows.keys())
-            columns = list(table.columns.values())
-            value_column_key = columns[1].key
-
-            if old_data.updated_at != new_data.updated_at and len(rows) > 3:
-                table.update_cell(
-                    rows[3],
-                    value_column_key,
-                    Text(
-                        new_data.updated_at.strftime("%Y-%m-%d %H:%M:%S")
-                        if new_data.updated_at
-                        else "N/A",
-                        justify="left",
-                        style="dim" if not new_data.updated_at else "",
-                    ),
-                )
-
-            if old_data.status != new_data.status and len(rows) > 5:
-                table.update_cell(
-                    rows[5], value_column_key, StyledStatus(new_data.status)
-                )
-
-            if old_data.progress != new_data.progress and len(rows) > 6:
-                table.update_cell(
-                    rows[6], value_column_key, render_progress_bar(new_data.progress)
-                )
-
-            if old_data.total_job_count != new_data.total_job_count and len(rows) > 7:
-                table.update_cell(
-                    rows[7],
-                    value_column_key,
-                    Text(str(new_data.total_job_count), justify="left"),
-                )
-
-            if old_data.jobs_finished != new_data.jobs_finished and len(rows) > 8:
-                table.update_cell(
-                    rows[8],
-                    value_column_key,
-                    Text(str(new_data.jobs_finished), justify="left"),
-                )
-
-        except NoMatches as e:
-            self.log.debug(f"Error updating cells: {e}")
 
 
 class WorkflowErrors(Container):

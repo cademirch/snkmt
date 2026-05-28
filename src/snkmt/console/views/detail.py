@@ -73,9 +73,12 @@ class WorkflowDetailScreen(Screen):
         self.app.push_screen(LogFileModal(Path(self._current_log_path)))
 
     def compose(self) -> ComposeResult:
-        with Horizontal(id="detail-body"):
-            # Left panel: rules + jobs
-            with Vertical(id="detail-left"):
+        with Vertical(id="detail-body"):
+            # Top row: Workflow summary header
+            yield WorkflowDetailOverview(id="detail-overview")
+
+            # Middle row: Rules and Jobs side-by-side
+            with Horizontal(id="detail-middle"):
                 rule_container = Container(classes="subsection", id="detail-rules")
                 rule_container.border_title = "Rules"
                 with rule_container:
@@ -89,13 +92,8 @@ class WorkflowDetailScreen(Screen):
                     job_table.display = False
                     yield job_table
 
-            # Right panel: tabbed detail
-            with TabbedContent(id="detail-tabs"):
-                with TabPane("Overview", id="tab-overview"):
-                    overview = WorkflowDetailOverview(id="detail-overview")
-                    overview.border_title = ""
-                    yield overview
-
+            # Bottom row: Tabs (Logs, Resources, and Errors)
+            with TabbedContent(id="detail-bottom-tabs"):
                 with TabPane("Logs", id="tab-logs"):
                     pass
 

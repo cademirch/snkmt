@@ -65,31 +65,68 @@ WorkflowTable {
 }
 
 /* ============================================================================
-   DETAIL SCREEN - two-panel layout
+   DETAIL SCREEN - Option A layout
    ============================================================================ */
 #detail-body {
     height: 1fr;
     padding: 0 2;
+    layout: vertical;
 }
 
-#detail-left {
+#detail-overview {
+    height: auto;
+    border: round $accent 20%;
+    border-title-color: $text-accent 50%;
+    border-title-align: center;
+    margin-bottom: 1;
+}
+
+#overview-header-layout {
+    height: auto;
+    layout: horizontal;
+    width: 100%;
+}
+
+.overview-card {
     width: 1fr;
-    max-width: 50;
-    height: 1fr;
+    height: auto;
+    padding: 0 2;
+    border-right: solid $accent 20%;
+}
+
+#card-command {
+    border-right: none;
+}
+
+.card-label {
+    color: $text-muted;
+    text-style: bold;
+}
+
+.card-value {
+    color: $text-primary;
+    margin-bottom: 1;
+}
+
+#detail-middle {
+    height: 1.2fr;
+    layout: horizontal;
+    margin-bottom: 1;
 }
 
 #detail-rules {
-    height: 2fr;
+    width: 5fr;
+    height: 100%;
 }
 
 #detail-jobs {
-    height: 1fr;
+    width: 3fr;
+    height: 100%;
     overflow-y: auto;
 }
 
-#detail-tabs {
-    width: 2fr;
-    height: 1fr;
+#detail-bottom-tabs {
+    height: 1.8fr;
 }
 
 /* ============================================================================
