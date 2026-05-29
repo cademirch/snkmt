@@ -55,6 +55,7 @@ class SQLAlchemyWorkflowRepository(WorkflowRepository):
                 started_at=workflow.started_at,
                 updated_at=workflow.updated_at,
                 dryrun=workflow.dryrun,
+                command_line=workflow.command_line,
             )
             session.add(new_workflow)
             await session.commit()
@@ -417,6 +418,7 @@ class SQLAlchemyWorkflowRepository(WorkflowRepository):
             snakefile=workflow.snakefile,
             end_time=workflow.end_time,
             dryrun=workflow.dryrun,
+            command_line=workflow.command_line,
             rule_ids=[r.id for r in workflow.rules]
             if hasattr(workflow, "rules") and workflow.rules
             else [],
