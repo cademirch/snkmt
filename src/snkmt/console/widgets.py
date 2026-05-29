@@ -614,8 +614,17 @@ class ResourcesPanel(Container):
             for key, val in job.resources.items():
                 table.add_row(Text(key, style="bold"), str(val))
 
+        if job.reason:
+            clean_reason = " ".join(
+                line.strip() for line in job.reason.splitlines() if line.strip()
+            )
+            table.add_row(Text("reason", style="bold"), clean_reason)
+
         if job.shellcmd:
-            table.add_row(Text("shellcmd", style="bold"), job.shellcmd)
+            clean_cmd = " ".join(
+                line.strip() for line in job.shellcmd.splitlines() if line.strip()
+            )
+            table.add_row(Text("shellcmd", style="bold"), clean_cmd)
 
         if job.wildcards:
             for k, v in job.wildcards.items():
