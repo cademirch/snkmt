@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Any, List, Optional, Union
 from uuid import UUID
 from textual import work
 from textual.reactive import reactive
@@ -19,27 +19,27 @@ from textual.widgets.data_table import RowKey, CellDoesNotExist, DuplicateKey
 from datetime import datetime, timezone
 from rich.text import TextType, Text
 from textual.app import ComposeResult
-from textual.containers import Container
+from textual.containers import Container, Horizontal, Vertical
 from snkmt.types.dto import JobDTO, RuleDTO, WorkflowDTO
 from snkmt.types.enums import Status, DateFilter
 from snkmt.core.repository import WorkflowRepository
 
 
-class StyledProgress(Text):
-    def __init__(self, progress: float) -> None:
-        progstr = format(progress, ".2%")
+def render_progress_bar(progress: float, width: int = 8) -> Text:
+    progress = max(0.0, min(1.0, progress))
+    pct = f"{progress:.0%}"
 
-        if progress < 0.2:
-            color = "#fb4b4b"
-        elif progress < 0.4:
-            color = "#ffa879"
-        elif progress < 0.6:
-            color = "#ffc163"
-        elif progress < 0.8:
-            color = "#feff5c"
-        else:
-            color = "#c0ff33"
-        super().__init__(progstr, style=color)
+    if progress < 0.2:
+        color = "#fb4b4b"
+    elif progress < 0.4:
+        color = "#ffa879"
+    elif progress < 0.6:
+        color = "#ffc163"
+    elif progress < 0.8:
+        color = "#feff5c"
+    else:
+        color = "#c0ff33"
+    return Text(pct, style=color)
 
 
 class StyledStatus(Text):
@@ -59,7 +59,7 @@ class StyledStatus(Text):
 class RuleTable(DataTable):
     workflow_id: reactive[UUID | None] = reactive(None, layout=True)
 
-    def __init__(self, repo: WorkflowRepository, *args, **kwargs):
+    def __init__(self, repo: WorkflowRepository, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.repo = repo
         self.last_update: Optional[datetime] = None
@@ -133,7 +133,7 @@ class RuleTable(DataTable):
 
         return [
             rule.name,
-            StyledProgress(progress),
+            render_progress_bar(progress),
             str(rule.total_job_count),
             str(rule.jobs_finished),
             str(rule.job_counts.running),
@@ -194,7 +194,7 @@ class WorkflowTable(DataTable):
             self.workflows = workflows
             super().__init__()
 
-    def __init__(self, repo: WorkflowRepository, *args, **kwargs):
+    def __init__(self, repo: WorkflowRepository, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
         self.repo = repo
@@ -287,7 +287,7 @@ class WorkflowTable(DataTable):
             if workflow.started_at
             else "N/A"
         )
-        progress = StyledProgress(workflow.progress)
+        progress = render_progress_bar(workflow.progress)
         return [workflow_id[-6:], status, snakefile, started_at, progress]
 
     def _update_row(self, key: str, row_data: List[TextType]) -> None:
@@ -343,10 +343,10 @@ class WorkflowTable(DataTable):
 
                 self.app.push_screen(
                     ConfirmDeleteModal(workflow_id, workflow_name),
-                    callback=lambda confirmed: self._handle_delete_confirmed(
+                    callback=lambda confirmed: self._handle_delete_confirmed(  # type: ignore[arg-type]
                         confirmed, row_key, workflow_id
-                    ),  # type: ignore
-                )  # type: ignore
+                    ),
+                )
         except CellDoesNotExist as e:
             self.log.debug(f"Tried to delete workflow but failed: {e}")
 
@@ -412,13 +412,34 @@ class WorkflowTable(DataTable):
 class WorkflowDetailOverview(Container):
     workflow_data: reactive[WorkflowDTO | None] = reactive(None)
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self._last_workflow_id: str | None = None
         self.border_title = "Workflow Info"
 
     def compose(self) -> ComposeResult:
-        yield Label("Please select a workflow to view details.", id="placeholder-label")
+        with Horizontal(id="overview-header-layout"):
+            with Vertical(classes="overview-card", id="card-info"):
+                yield Label("[bold]Workflow ID[/bold]", classes="card-label")
+                yield Label("...", id="overview-id", classes="card-value")
+                yield Label("[bold]Snakefile[/bold]", classes="card-label")
+                yield Label("...", id="overview-snakefile", classes="card-value")
+
+            with Vertical(classes="overview-card", id="card-status"):
+                yield Label("[bold]Status[/bold]", classes="card-label")
+                yield Label("...", id="overview-status", classes="card-value")
+                yield Label("[bold]Progress[/bold]", classes="card-label")
+                yield Label("...", id="overview-progress", classes="card-value")
+
+            with Vertical(classes="overview-card", id="card-jobs"):
+                yield Label("[bold]Jobs Finished[/bold]", classes="card-label")
+                yield Label("...", id="overview-jobs-finished", classes="card-value")
+                yield Label("[bold]Total Jobs[/bold]", classes="card-label")
+                yield Label("...", id="overview-jobs-total", classes="card-value")
+
+            with Vertical(classes="overview-card", id="card-command"):
+                yield Label("[bold]Command Line[/bold]", classes="card-label")
+                yield Label("...", id="overview-command", classes="card-value")
 
     async def watch_workflow_data(
         self, old_data: WorkflowDTO | None, new_data: WorkflowDTO | None
@@ -426,145 +447,34 @@ class WorkflowDetailOverview(Container):
         if new_data is None:
             return
 
-        if old_data is None or str(old_data.id) != str(new_data.id):
-            self._last_workflow_id = str(new_data.id)
-            await self._rebuild_table(new_data)
-        else:
-            self._update_table_cells(old_data, new_data)
-
-    async def _rebuild_table(self, workflow: WorkflowDTO) -> None:
-        await self.query("*").exclude("#workflow-detail-table").remove()
-
         try:
-            self.query_one("#placeholder-label").remove()
+            self.query_one("#overview-id", Label).update(str(new_data.id))
+            self.query_one("#overview-snakefile", Label).update(
+                Path(new_data.snakefile).name if new_data.snakefile else "N/A"
+            )
+            self.query_one("#overview-status", Label).update(
+                StyledStatus(new_data.status)
+            )
+            self.query_one("#overview-progress", Label).update(
+                render_progress_bar(new_data.progress)
+            )
+            self.query_one("#overview-jobs-finished", Label).update(
+                str(new_data.jobs_finished)
+            )
+            self.query_one("#overview-jobs-total", Label).update(
+                str(new_data.total_job_count)
+            )
+            self.query_one("#overview-command", Label).update(
+                new_data.command_line or "N/A"
+            )
         except NoMatches:
             pass
-
-        try:
-            old_table = self.query_one("#workflow-detail-table", DataTable)
-            old_table.clear()
-            table = old_table
-        except NoMatches:
-            table = DataTable(id="workflow-detail-table")
-            table.add_column("Field", width=15)
-            table.add_column("Value")
-            table.cursor_type = "none"
-            table.show_cursor = False
-            table.show_header = False
-            await self.mount(table)
-
-        table.add_row(
-            Text("ID", justify="left", style="bold"),
-            Text(str(workflow.id), justify="left"),
-        )
-        table.add_row(
-            Text("Snakefile", justify="left", style="bold"),
-            Text(
-                workflow.snakefile or "N/A",
-                justify="left",
-                style="dim" if not workflow.snakefile else "",
-            ),
-        )
-        table.add_row(
-            Text("Started At", justify="left", style="bold"),
-            Text(
-                workflow.started_at.strftime("%Y-%m-%d %H:%M:%S")
-                if workflow.started_at
-                else "N/A",
-                justify="left",
-                style="dim" if not workflow.started_at else "",
-            ),
-        )
-        table.add_row(
-            Text("Updated At", justify="left", style="bold"),
-            Text(
-                workflow.updated_at.strftime("%Y-%m-%d %H:%M:%S")
-                if workflow.updated_at
-                else "N/A",
-                justify="left",
-                style="dim" if not workflow.updated_at else "",
-            ),
-        )
-        table.add_row(
-            Text("End Time", justify="left", style="bold"),
-            Text(
-                workflow.end_time.strftime("%Y-%m-%d %H:%M:%S")
-                if workflow.end_time
-                else "N/A",
-                justify="left",
-                style="dim" if not workflow.end_time else "",
-            ),
-        )
-        table.add_row(
-            Text("Status", justify="left", style="bold"),
-            StyledStatus(workflow.status),
-        )
-        table.add_row(
-            Text("Progress", justify="left", style="bold"),
-            StyledProgress(workflow.progress),
-        )
-        table.add_row(
-            Text("Total Jobs", justify="left", style="bold"),
-            Text(str(workflow.total_job_count), justify="left"),
-        )
-        table.add_row(
-            Text("Jobs Finished", justify="left", style="bold"),
-            Text(str(workflow.jobs_finished), justify="left"),
-        )
-
-    def _update_table_cells(self, old_data: WorkflowDTO, new_data: WorkflowDTO) -> None:
-        """Update individual table cells when workflow data changes."""
-        try:
-            table = self.query_one(DataTable)
-            rows = list(table.rows.keys())
-            columns = list(table.columns.values())
-            value_column_key = columns[1].key
-
-            if old_data.updated_at != new_data.updated_at and len(rows) > 3:
-                table.update_cell(
-                    rows[3],
-                    value_column_key,
-                    Text(
-                        new_data.updated_at.strftime("%Y-%m-%d %H:%M:%S")
-                        if new_data.updated_at
-                        else "N/A",
-                        justify="left",
-                        style="dim" if not new_data.updated_at else "",
-                    ),
-                )
-
-            if old_data.status != new_data.status and len(rows) > 5:
-                table.update_cell(
-                    rows[5], value_column_key, StyledStatus(new_data.status)
-                )
-
-            if old_data.progress != new_data.progress and len(rows) > 6:
-                table.update_cell(
-                    rows[6], value_column_key, StyledProgress(new_data.progress)
-                )
-
-            if old_data.total_job_count != new_data.total_job_count and len(rows) > 7:
-                table.update_cell(
-                    rows[7],
-                    value_column_key,
-                    Text(str(new_data.total_job_count), justify="left"),
-                )
-
-            if old_data.jobs_finished != new_data.jobs_finished and len(rows) > 8:
-                table.update_cell(
-                    rows[8],
-                    value_column_key,
-                    Text(str(new_data.jobs_finished), justify="left"),
-                )
-
-        except NoMatches as e:
-            self.log.debug(f"Error updating cells: {e}")
 
 
 class WorkflowErrors(Container):
     workflow_id: reactive[UUID | None] = reactive(None, recompose=True)
 
-    def __init__(self, repo: WorkflowRepository, *args, **kwargs):
+    def __init__(self, repo: WorkflowRepository, *args: Any, **kwargs: Any) -> None:
         self.repo = repo
         super().__init__(*args, **kwargs)
 
@@ -630,6 +540,97 @@ class WorkflowErrors(Container):
             await self.mount(collapsible)
 
 
+class JobTable(DataTable):
+    """Shows jobs for a selected rule. Set workflow_id + rule_id to load."""
+
+    workflow_id: reactive[UUID | None] = reactive(None)
+    rule_id: reactive[int | None] = reactive(None, layout=True)
+
+    def __init__(self, repo: WorkflowRepository, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.repo = repo
+        self._column_keys = self.add_columns("Job", "Status", "Duration", "Wildcards")
+        self.cursor_type = "row"
+        self.cursor_foreground_priority = "renderable"
+
+    def watch_rule_id(self) -> None:
+        if self.rule_id is not None and self.workflow_id is not None:
+            self._refresh_jobs()
+
+    @work(exclusive=True)
+    async def _refresh_jobs(self) -> None:
+        if self.workflow_id is None or self.rule_id is None:
+            return
+        self.clear()
+        jobs = await self.repo.list_rule_jobs(self.workflow_id, self.rule_id)
+        for job in jobs:
+            duration = f"{job.duration:.0f}s" if job.duration is not None else "running"
+            wildcards = (
+                ", ".join(f"{k}={v}" for k, v in (job.wildcards or {}).items()) or "—"
+            )
+            self.add_row(
+                str(job.id),
+                StyledStatus(job.status),
+                duration,
+                wildcards,
+                key=str(job.id),
+            )
+
+
+class ResourcesPanel(Container):
+    """Displays job threads, duration, requested resources, shellcmd, and wildcards."""
+
+    job_data: reactive[JobDTO | None] = reactive(None)
+
+    def compose(self) -> ComposeResult:
+        yield Label("Select a job to view resources.", id="resources-placeholder")
+
+    async def watch_job_data(self, job: JobDTO | None) -> None:
+        await self.query("*").remove()
+        if job is None:
+            await self.mount(
+                Label("Select a job to view resources.", id="resources-placeholder")
+            )
+            return
+
+        table: DataTable[Any] = DataTable(id="resources-table")
+        table.add_column("Field", width=14)
+        table.add_column("Value")
+        table.cursor_type = "none"
+        table.show_cursor = False
+        table.show_header = False
+        await self.mount(table)
+
+        table.add_row(Text("threads", style="bold"), str(job.threads))
+
+        duration_str = f"{job.duration:.1f}s" if job.duration is not None else "running"
+        table.add_row(Text("duration", style="bold"), duration_str)
+
+        if job.resources:
+            table.add_row(
+                Text("── requested ──", style="dim"),
+                Text("──────────────", style="dim"),
+            )
+            for key, val in job.resources.items():
+                table.add_row(Text(key, style="bold"), str(val))
+
+        if job.reason:
+            clean_reason = " ".join(
+                line.strip() for line in job.reason.splitlines() if line.strip()
+            )
+            table.add_row(Text("reason", style="bold"), clean_reason)
+
+        if job.shellcmd:
+            clean_cmd = " ".join(
+                line.strip() for line in job.shellcmd.splitlines() if line.strip()
+            )
+            table.add_row(Text("shellcmd", style="bold"), clean_cmd)
+
+        if job.wildcards:
+            for k, v in job.wildcards.items():
+                table.add_row(Text(f"wildcard:{k}", style="bold"), str(v))
+
+
 class ConfirmDeleteModal(ModalScreen[bool]):
     """Modal to confirm workflow deletion."""
 
@@ -638,7 +639,9 @@ class ConfirmDeleteModal(ModalScreen[bool]):
         ("enter", "confirm", "Confirm Delete"),
     ]
 
-    def __init__(self, workflow_id: str, workflow_name: str, *args, **kwargs):
+    def __init__(
+        self, workflow_id: str, workflow_name: str, *args: Any, **kwargs: Any
+    ) -> None:
         self.workflow_id = workflow_id
         self.workflow_name = workflow_name
         super().__init__(*args, **kwargs)
@@ -674,7 +677,7 @@ class LogFileModal(ModalScreen):
 
     BINDINGS = [("escape", "app.pop_screen", "Pop screen")]
 
-    def __init__(self, log_file: Path, *args, **kwargs):
+    def __init__(self, log_file: Path, *args: Any, **kwargs: Any) -> None:
         self.log_file = log_file
         super().__init__(*args, **kwargs)
 
