@@ -183,3 +183,45 @@ def test_legacy_database(temp_db_path, caplog):
         )
 
         assert f"Legacy database stamped with revision: {desired_rev}" in caplog.text
+
+
+def test_in_process_migration_does_not_disable_host_loggers(temp_db_path):
+    """Opening a legacy database stamps/migrates it via Alembic in-process.
+
+    Alembic's env.py runs ``logging.config.fileConfig`` whose default
+    ``disable_existing_loggers=True`` would disable every logger not named in
+    alembic.ini -- including loggers owned by the host application. When snkmt
+    is used as a Snakemake logger plugin this silently disabled Snakemake's
+    "snakemake.logging" logger, so the WORKFLOW_STARTED event was dropped and
+    every subsequent rule insert failed with
+    ``NOT NULL constraint failed: rules.workflow_id``.
+
+    Regression test: a pre-existing host logger must survive opening the DB.
+    """
+
+    import logging
+    import shutil
+
+    # A logger that mimics a host application's logger (e.g. Snakemake's),
+    # created *before* snkmt touches the database.
+    host_logger = logging.getLogger("snakemake.logging")
+    host_logger.addHandler(logging.NullHandler())
+    host_logger.setLevel(logging.INFO)
+    host_logger.disabled = False
+
+    legacy_db = Path("tests/fixtures/legacy.db")
+    shutil.copy(legacy_db, Path(temp_db_path))
+
+    # Opening a legacy DB triggers in-process stamping + migration.
+    db = Database(
+        db_path=str(temp_db_path),
+        create_db=False,
+        auto_migrate=True,
+        ignore_version=False,
+    )
+    db.close()
+
+    assert host_logger.disabled is False, (
+        "In-process Alembic migration disabled a host logger; "
+        "alembic env.py must use fileConfig(disable_existing_loggers=False)."
+    )

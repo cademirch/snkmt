@@ -11,8 +11,18 @@ from alembic import context
 config = context.config
 
 
+# Interpret the config file for Python logging.
+#
+# NOTE: ``disable_existing_loggers`` must stay False. Some snkmt code paths
+# (e.g. ``stamp_legacy_database``) invoke Alembic *in-process* rather than in a
+# subprocess, so this env.py runs inside the host application -- for example a
+# Snakemake run using the snkmt logger plugin. With the fileConfig default of
+# ``disable_existing_loggers=True``, Alembic would disable every logger not
+# named in alembic.ini -- including the host's loggers -- silently dropping
+# their records for the rest of the process. Keeping it False configures
+# Alembic's own loggers without tearing down anyone else's.
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 # add your model's MetaData object here
 # for 'autogenerate' support
