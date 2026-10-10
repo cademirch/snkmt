@@ -11,10 +11,11 @@ from typing import Optional
 from textual.screen import Screen
 from textual.containers import Horizontal, Container
 from textual.css.query import NoMatches
+from textual import on
 
 from snkmt.version import VERSION
 from snkmt.console.command import SelectDatabaseCommand, DatabaseSourceProvider
-from snkmt.console.views.overview import OverviewContainer
+from snkmt.console.views.overview import WorkflowListView
 from snkmt.console.widgets import LogFileModal
 from snkmt.core.db.session import AsyncDatabase
 
@@ -50,10 +51,6 @@ class AppHeader(Horizontal):
             yield Label(f"Connected to: {self.datasource}", id="app-db-path")
 
 
-class AppBody(Horizontal):
-    """The body of the app"""
-
-
 class DashboardScreen(Screen):
     COMMANDS = {SelectDatabaseCommand}
     BINDINGS = [
@@ -62,8 +59,17 @@ class DashboardScreen(Screen):
         ("r", "force_refresh", "Refresh"),
     ]
 
+    def __init__(self, datasource_url: Optional[str] = None) -> None:
+        super().__init__()
+        self.datasource = datasource_url
+
+    def action_force_refresh(self) -> None:
+        try:
+            self.query_one(WorkflowListView).force_refresh()
+        except NoMatches:
+            pass
+
     def action_select_database_source(self) -> None:
-        """Open database source selector directly."""
         self.app.push_screen(
             CommandPalette(
                 providers=[DatabaseSourceProvider],
@@ -71,31 +77,17 @@ class DashboardScreen(Screen):
             )
         )
 
-    def __init__(self, datasource_url: Optional[str] = None) -> None:
-        super().__init__()
-        self.datasource = datasource_url
-        self.log.info(f"{datasource_url=}")
-
-    def action_force_refresh(self) -> None:
-        """Force refresh all visible tables."""
-        try:
-            overview = self.query_one(OverviewContainer)
-            overview.force_refresh()
-        except NoMatches:
-            pass
-
     def compose(self) -> ComposeResult:
         try:
             db = AsyncDatabase(self.datasource, create_db=False)
             repo = db.get_workflow_repository()
             yield AppHeader(datasource=db.db_path, id="header")
-            yield OverviewContainer(repo)
+            yield WorkflowListView(repo)
         except Exception as e:
             from snkmt.core.db.session import DatabaseNotFoundError
 
             error_container = Container(classes="section", id="error-container")
             error_container.border_title = "Database Connection Error"
-
             with error_container:
                 if isinstance(e, DatabaseNotFoundError):
                     error_type = "Database Not Found"
@@ -107,17 +99,28 @@ class DashboardScreen(Screen):
                     error_type = f"{type(e).__name__}"
                     error_details = str(e)
                     suggestion = "\n Check the database path and permissions"
-
                 yield Label(
-                    f"{error_type}\n\n"
-                    f"Datasource: {self.datasource}\n\n"
-                    f"Details:\n{error_details}"
-                    f"{suggestion}",
+                    f"{error_type}\n\nDatasource: {self.datasource}\n\n"
+                    f"Details:\n{error_details}{suggestion}",
                     id="error-message",
                     classes="error-text",
                 )
-
         yield Footer(id="footer")
+
+    @on(WorkflowListView.WorkflowSelected)
+    def handle_workflow_selected(
+        self, message: WorkflowListView.WorkflowSelected
+    ) -> None:
+        from snkmt.console.views.detail import WorkflowDetailScreen
+
+        try:
+            db = AsyncDatabase(self.datasource, create_db=False)
+            repo = db.get_workflow_repository()
+            self.app.push_screen(
+                WorkflowDetailScreen(repo, message.workflow_id, self.datasource)
+            )
+        except Exception as e:
+            self.app.notify(f"Could not open workflow: {e}", severity="error")
 
 
 class snkmtApp(App):
@@ -167,7 +170,7 @@ class snkmtApp(App):
         self.screen.focus_previous()
 
 
-def run_app(refresh_interval: float, databases: Optional[list[str]] = None):
+def run_app(refresh_interval: float, databases: Optional[list[str]] = None) -> None:
     """Run the Textual app."""
     app = snkmtApp(refresh_interval, databases)
     app.run()
