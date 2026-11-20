@@ -74,6 +74,27 @@ def test_new_database_creates_expected_tables(temp_db_path):
     db.close()
 
 
+def test_new_database_has_indexes_for_console_polls(temp_db_path):
+    """The columns the console polls and the plugin looks up are indexed."""
+    from sqlalchemy import inspect
+
+    db = Database(db_path=str(temp_db_path), create_db=True)
+    inspector = inspect(db.engine)
+    index_names = {
+        index["name"]
+        for table in ("jobs", "rules", "files")
+        for index in inspector.get_indexes(table)
+    }
+    expected = {
+        "ix_jobs_rule_id_status",
+        "ix_jobs_workflow_id",
+        "ix_rules_workflow_id",
+        "ix_files_job_id",
+    }
+    assert expected <= index_names, f"Missing indexes: {expected - index_names}"
+    db.close()
+
+
 @pytest.mark.asyncio
 async def test_async_new_database_sets_latest_revision(temp_db_path):
     """Test that a new async database is set to the latest revision."""

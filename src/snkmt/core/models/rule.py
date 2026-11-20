@@ -17,7 +17,9 @@ class Rule(Base):
     __tablename__ = "rules"
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str]
-    workflow_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workflows.id"))
+    workflow_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("workflows.id"), index=True
+    )
     updated_at: Mapped[datetime] = mapped_column(
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
