@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import List, Optional, Union
 from uuid import UUID
 from textual import work
+from textual.worker import Worker
 from textual.reactive import reactive
 from textual.css.query import NoMatches
 from textual.message import Message
@@ -63,6 +64,7 @@ class RuleTable(DataTable):
         super().__init__(*args, **kwargs)
         self.repo = repo
         self.last_update: Optional[datetime] = None
+        self._poll_worker: Optional[Worker[None]] = None
         self._column_keys = self.add_columns(
             "Rule",
             "Progress",
@@ -78,9 +80,19 @@ class RuleTable(DataTable):
     async def on_mount(self) -> None:
         self.last_update = datetime.now(timezone.utc)
         if self.app.refresh_interval > 0:  # type: ignore
-            self.set_interval(self.app.refresh_interval, self.update_rules)  # type: ignore
+            self.set_interval(self.app.refresh_interval, self._poll)  # type: ignore
 
-    @work(exclusive=True)
+    def _poll(self) -> None:
+        """Start a poll unless the previous one is still running.
+
+        A slow poll must finish rather than be cancelled by the next tick,
+        because a cancelled query keeps its SQLite read lock.
+        See ``repository.sql.uninterruptible``.
+        """
+        if self._poll_worker is None or self._poll_worker.is_finished:
+            self._poll_worker = self.update_rules()
+
+    @work()
     async def update_rules(self) -> None:
         if self.workflow_id is None:
             return
@@ -199,6 +211,7 @@ class WorkflowTable(DataTable):
 
         self.repo = repo
         self.last_update: Optional[datetime] = None
+        self._poll_worker: Optional[Worker[None]] = None
         self.hidden_rows: set[RowKey] = set()
         self._last_filtered_count: int = 0
         self._last_total_count: int = 0
@@ -211,9 +224,14 @@ class WorkflowTable(DataTable):
     async def on_mount(self) -> None:
         self.last_update = datetime.now(timezone.utc)
         if self.app.refresh_interval > 0:  # type: ignore
-            self.set_interval(self.app.refresh_interval, self.update_workflows)  # type: ignore
+            self.set_interval(self.app.refresh_interval, self._poll)  # type: ignore
 
-    @work(exclusive=True)
+    def _poll(self) -> None:
+        """Start a poll unless the previous one is still running (see RuleTable._poll)."""
+        if self._poll_worker is None or self._poll_worker.is_finished:
+            self._poll_worker = self.update_workflows()
+
+    @work()
     async def update_workflows(self) -> None:
         workflows = await self.repo.list(
             since=self.last_update,

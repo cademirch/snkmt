@@ -22,6 +22,11 @@ import subprocess
 from snkmt.core.repository.sql import SQLAlchemyWorkflowRepository
 from snkmt.core.db import SNKMT_DIR
 
+# Readers and the logger plugin share one file.
+# A statement that meets a writer's COMMIT must wait for it,
+# rather than fail with "database is locked" after sqlite3's default 5 s.
+SQLITE_BUSY_TIMEOUT_S = 30.0
+
 
 class DatabaseNotFoundError(Exception):
     """Raised when the Snakemake DB file isn’t found and creation is disabled."""
@@ -66,6 +71,7 @@ class Database:
             max_overflow=20,
             pool_pre_ping=True,
             future=True,
+            connect_args={"timeout": SQLITE_BUSY_TIMEOUT_S},
         )
         self.SessionLocal = sessionmaker(
             autocommit=False, autoflush=True, bind=self.engine
@@ -314,6 +320,7 @@ class AsyncDatabase:
             pool_size=10,
             max_overflow=20,
             pool_pre_ping=True,
+            connect_args={"timeout": SQLITE_BUSY_TIMEOUT_S},
         )
 
         self.SessionLocal = async_sessionmaker(
