@@ -1,7 +1,19 @@
+import asyncio
+import functools
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy import select, and_, func, case
 from sqlalchemy.orm import selectinload
-from typing import Optional, List, Union
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Coroutine,
+    Optional,
+    List,
+    ParamSpec,
+    TypeVar,
+    Union,
+)
 from datetime import datetime, timezone, timedelta
 from uuid import UUID
 
@@ -22,11 +34,44 @@ from snkmt.types.dto import (
     FileDTO,
 )
 
+P = ParamSpec("P")
+R = TypeVar("R")
+
+
+def uninterruptible(
+    fn: Callable[P, Awaitable[R]],
+) -> Callable[P, Coroutine[Any, Any, R]]:
+    """Run the query to completion even if the awaiting task is cancelled.
+
+    A task cancelled inside an aiosqlite call leaves its statement un-reset.
+    An un-reset SELECT holds SQLite's SHARED lock until the process exits,
+    which blocks every writer's COMMIT.
+    The caller still gets CancelledError right away; only the query is shielded.
+    """
+
+    @functools.wraps(fn)
+    async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+        task = asyncio.ensure_future(fn(*args, **kwargs))
+        try:
+            return await asyncio.shield(task)
+        except asyncio.CancelledError:
+            task.add_done_callback(_retrieve_exception)
+            raise
+
+    return wrapper
+
+
+def _retrieve_exception(task: "asyncio.Future[Any]") -> None:
+    """Mark the orphaned task's exception as seen so asyncio does not log it."""
+    if not task.cancelled():
+        task.exception()
+
 
 class SQLAlchemyWorkflowRepository(WorkflowRepository):
     def __init__(self, session_factory: async_sessionmaker):
         self.async_session = session_factory
 
+    @uninterruptible
     async def get(self, workflow_id: UUID) -> Optional[WorkflowDTO]:
         async with self.async_session() as session:
             result = await session.execute(
@@ -35,6 +80,7 @@ class SQLAlchemyWorkflowRepository(WorkflowRepository):
             workflow = result.scalar_one_or_none()
             return self._workflow_to_dto(workflow) if workflow else None
 
+    @uninterruptible
     async def delete(self, workflow_id: UUID) -> bool:
         async with self.async_session() as session:
             workflow = await session.get(Workflow, workflow_id)
@@ -44,6 +90,7 @@ class SQLAlchemyWorkflowRepository(WorkflowRepository):
                 return True
             return False
 
+    @uninterruptible
     async def create(self, workflow: WorkflowDTO) -> Optional[UUID]:
         async with self.async_session() as session:
             new_workflow = Workflow(
@@ -60,6 +107,7 @@ class SQLAlchemyWorkflowRepository(WorkflowRepository):
             await session.commit()
             return new_workflow.id
 
+    @uninterruptible
     async def update(self, update: UpdateWorkflowDTO) -> bool:
         async with self.async_session() as session:
             workflow = await session.get(Workflow, update.id)
@@ -78,6 +126,7 @@ class SQLAlchemyWorkflowRepository(WorkflowRepository):
             await session.commit()
             return True
 
+    @uninterruptible
     async def list(
         self,
         limit: Optional[int] = None,
@@ -120,6 +169,7 @@ class SQLAlchemyWorkflowRepository(WorkflowRepository):
             workflows = result.scalars().all()
             return [self._workflow_to_dto(w) for w in workflows]
 
+    @uninterruptible
     async def count(
         self,
         name: Optional[str] = None,
@@ -189,6 +239,7 @@ class SQLAlchemyWorkflowRepository(WorkflowRepository):
             case _:
                 return None
 
+    @uninterruptible
     async def list_rules(
         self,
         workflow_id: UUID,
@@ -261,6 +312,7 @@ class SQLAlchemyWorkflowRepository(WorkflowRepository):
 
             return []
 
+    @uninterruptible
     async def list_rule_jobs(self, workflow_id: UUID, rule_id: int) -> List[JobDTO]:
         async with self.async_session() as session:
             stmt = (
@@ -272,6 +324,7 @@ class SQLAlchemyWorkflowRepository(WorkflowRepository):
             jobs = result.scalars().all()
             return [self._job_to_dto(j) for j in jobs]
 
+    @uninterruptible
     async def create_rule(
         self, workflow_id: UUID, rule: CreateRuleDTO
     ) -> Optional[int]:
@@ -291,6 +344,7 @@ class SQLAlchemyWorkflowRepository(WorkflowRepository):
             await session.refresh(new_rule)
             return new_rule.id
 
+    @uninterruptible
     async def update_rule(
         self, workflow_id: UUID, rule_id: int, update: UpdateRuleDTO
     ) -> Optional[int]:
@@ -313,6 +367,7 @@ class SQLAlchemyWorkflowRepository(WorkflowRepository):
             await session.refresh(rule)
             return rule_id
 
+    @uninterruptible
     async def create_job(
         self, workflow_id: UUID, rule_id: int, job: CreateJobDTO
     ) -> Optional[JobDTO]:
@@ -345,6 +400,7 @@ class SQLAlchemyWorkflowRepository(WorkflowRepository):
             await session.refresh(new_job)
             return self._job_to_dto(new_job)
 
+    @uninterruptible
     async def get_job(self, workflow_id: UUID, job_id: int) -> Optional[JobDTO]:
         async with self.async_session() as session:
             stmt = select(Job).where(
@@ -354,6 +410,7 @@ class SQLAlchemyWorkflowRepository(WorkflowRepository):
             job = result.scalar_one_or_none()
             return self._job_to_dto(job) if job else None
 
+    @uninterruptible
     async def update_job(
         self, workflow_id: UUID, rule_id: int, job_id: int, update: UpdateJobDTO
     ) -> Optional[JobDTO]:
@@ -380,6 +437,7 @@ class SQLAlchemyWorkflowRepository(WorkflowRepository):
             await session.refresh(job)
             return self._job_to_dto(job)
 
+    @uninterruptible
     async def create_file(
         self, workflow_id: UUID, job_id: int, file: CreateFileDTO
     ) -> Optional[FileDTO]:
@@ -446,6 +504,7 @@ class SQLAlchemyWorkflowRepository(WorkflowRepository):
             files=[self._file_to_dto(f) for f in job.files],
         )
 
+    @uninterruptible
     async def list_jobs(
         self,
         workflow_id: UUID,

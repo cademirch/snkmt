@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Optional
 
-from sqlalchemy import ForeignKey, Enum
+from sqlalchemy import ForeignKey, Enum, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship, Session
 
 from snkmt.core.models.base import Base
@@ -39,9 +39,13 @@ class Job(Base):
     """
 
     __tablename__ = "jobs"
+    # Covers the per-rule status counts the console polls every tick.
+    __table_args__ = (Index("ix_jobs_rule_id_status", "rule_id", "status"),)
     id: Mapped[int] = mapped_column(primary_key=True)
     snakemake_id: Mapped[int]
-    workflow_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workflows.id"))
+    workflow_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("workflows.id"), index=True
+    )
     rule_id: Mapped[int] = mapped_column(ForeignKey("rules.id"))
     message: Mapped[Optional[str]]
     wildcards: Mapped[Optional[dict[str, Any]]]
