@@ -88,6 +88,7 @@ class SQLAlchemyWorkflowRepository(WorkflowRepository):
         name: Optional[str] = None,
         status: Optional[Union[str, Status]] = None,
         started_at: Optional[DateFilter] = None,
+        dryrun: Optional[bool] = None,
     ) -> List[WorkflowDTO]:
         async with self.async_session() as session:
             stmt = select(Workflow)
@@ -108,6 +109,9 @@ class SQLAlchemyWorkflowRepository(WorkflowRepository):
                 if date_condition is not None:
                     stmt = stmt.where(date_condition)
 
+            if dryrun is not None:
+                stmt = stmt.where(Workflow.dryrun == dryrun)
+
             order_column = getattr(Workflow, order_by, Workflow.started_at)
             stmt = stmt.order_by(order_column.desc() if descending else order_column)
 
@@ -125,6 +129,7 @@ class SQLAlchemyWorkflowRepository(WorkflowRepository):
         name: Optional[str] = None,
         status: Optional[Union[str, Status]] = None,
         started_at: Optional[DateFilter] = None,
+        dryrun: Optional[bool] = None,
     ) -> int:
         async with self.async_session() as session:
             stmt = select(func.count(Workflow.id))
@@ -141,6 +146,9 @@ class SQLAlchemyWorkflowRepository(WorkflowRepository):
                 date_condition = self._get_date_condition(started_at)
                 if date_condition is not None:
                     stmt = stmt.where(date_condition)
+
+            if dryrun is not None:
+                stmt = stmt.where(Workflow.dryrun == dryrun)
 
             result = await session.execute(stmt)
             return result.scalar() or 0

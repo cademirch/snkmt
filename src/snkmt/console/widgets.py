@@ -220,6 +220,7 @@ class WorkflowTable(DataTable):
             name=self.name_filter or None,
             status=self.status_filter if self.status_filter != "all" else None,
             started_at=self.date_filter if self.date_filter != DateFilter.ANY else None,
+            dryrun=False,
         )
         self.post_message(self.UpdatedWorkflows(workflows))
         # Check for new workflows
@@ -250,9 +251,10 @@ class WorkflowTable(DataTable):
             name=self.name_filter or None,
             status=self.status_filter if self.status_filter != "all" else None,
             started_at=self.date_filter if self.date_filter != DateFilter.ANY else None,
+            dryrun=False,
         )
 
-        total_count = await self.repo.count()
+        total_count = await self.repo.count(dryrun=False)
 
         for workflow in workflows:
             workflow_id = str(workflow.id)
