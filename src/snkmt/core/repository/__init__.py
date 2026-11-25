@@ -47,6 +47,7 @@ class WorkflowRepository(ABC):
         name: Optional[str] = None,
         status: Optional[Union[str, Status]] = None,
         started_at: Optional[DateFilter] = None,
+        dryrun: Optional[bool] = None,
     ) -> List[WorkflowDTO]:
         """List workflows for dashboard table"""
         pass
@@ -57,6 +58,7 @@ class WorkflowRepository(ABC):
         name: Optional[str] = None,
         status: Optional[Union[str, Status]] = None,
         started_at: Optional[DateFilter] = None,
+        dryrun: Optional[bool] = None,
     ) -> int:
         """Count workflows matching the given filters"""
         pass

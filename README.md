@@ -58,6 +58,8 @@ Options:
 - `--db-path, -d`: Specify custom database path
 - `--refresh-interval, -r`: Auto-refresh interval in seconds (default: 1.0, set to 0 to disable — useful for NFS or remote filesystems)
 
+Workflows from dry-runs (`snakemake -n`) are not shown in the console.
+
 ### Database Commands
 
 View database information:
