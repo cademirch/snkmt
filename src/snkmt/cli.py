@@ -10,11 +10,31 @@ from rich.console import Console
 from rich.table import Table
 
 
+_LOGURU_DEFAULT_HANDLER_ID = 0
+_handler_id: Optional[int] = None
+
+
+def _remove_handler(handler_id: Optional[int]) -> None:
+    """Remove a loguru handler, ignoring it if it is already gone."""
+    if handler_id is None:
+        return
+    try:
+        logger.remove(handler_id)
+    except ValueError:
+        pass
+
+
 def verbose_callback(value: bool):
-    """Configure logging based on verbose flag."""
-    logger.remove()  # Remove all existing handlers first
+    """Configure logging based on verbose flag.
+
+    Only removes loguru's default stderr handler and the handler snkmt added on
+    a previous call, so handlers added by others (e.g. test fixtures) survive.
+    """
+    global _handler_id
+    _remove_handler(_LOGURU_DEFAULT_HANDLER_ID)
+    _remove_handler(_handler_id)
     # see https://loguru.readthedocs.io/en/stable/resources/troubleshooting.html#how-do-i-fix-valueerror-i-o-operation-error-on-closed-file
-    logger.add(
+    _handler_id = logger.add(
         lambda msg: sys.stderr.write(msg),  # type: ignore
         level="DEBUG" if value else "INFO",
     )
