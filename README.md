@@ -87,6 +87,10 @@ By default, snkmt stores data in the [XDG Base Directory](https://specifications
 
 <img src="docs/screenshots/logfile_modal.png" alt="Error view showing failed jobs and log files" width="800">
 
+## Updating dependencies
+
+After you change dependencies in `pyproject.toml`, run `pixi lock` and commit the updated `pixi.lock`. CI installs from the lockfile with `--frozen`, so if you don't commit it, CI keeps using the old dependency set.
+
 ## License
 
 This project is licensed under the MIT License. See the `LICENSE` file for details.

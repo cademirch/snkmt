@@ -24,7 +24,8 @@ jobs:
         uses: prefix-dev/setup-pixi@v0.8.3
         with:
           environments: dev
-          pixi-version: v0.42.1
+          pixi-version: v0.81.0
+          frozen: true
 
       - name: Ruff Format
         if: always()
@@ -49,7 +50,8 @@ jobs:
         uses: prefix-dev/setup-pixi@v0.8.3
         with:
           environments: dev
-          pixi-version: v0.42.1
+          pixi-version: v0.81.0
+          frozen: true
 
       - name: Run tests
         run: pixi run --environment dev test --show-capture=all -s -vv
