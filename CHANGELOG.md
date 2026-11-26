@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.0](https://github.com/cademirch/snkmt/compare/v0.4.0...v0.5.0) (2026-11-26)
+
+
+### Features
+
+* hide dry-run workflows in the console ([#54](https://github.com/cademirch/snkmt/issues/54)) ([019d3d2](https://github.com/cademirch/snkmt/commit/019d3d27f48d81d42a3ed806e191ff569ce23800))
+
+
+### Bug Fixes
+
+* only remove snkmt's own loguru handler; commit pixi.lock ([#56](https://github.com/cademirch/snkmt/issues/56)) ([94ebfa6](https://github.com/cademirch/snkmt/commit/94ebfa6d71a356526aa697d5021c688b51a8c363))
+
 ## [0.4.0](https://github.com/cademirch/snkmt/compare/v0.3.0...v0.4.0) (2026-03-13)
 
 
